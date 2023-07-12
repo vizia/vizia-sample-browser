@@ -1,2 +1,3 @@
-# vizia-sample-browser
-An audio sample browser application
+# Vizia Sample Browser
+
+An audio sample browser application.
