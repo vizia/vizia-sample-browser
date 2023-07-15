@@ -1,0 +1,61 @@
+* {
+    color: #fff;
+}
+
+:root {
+    background-color: #202020;
+}
+
+smart-table {
+    /* background-color: red; */
+}
+
+smart-table-row {
+    height: 32px;
+    /* background-color: blue; */
+}
+
+smart-table-row.header {
+    /* background-color: black; */
+}
+
+smart-table-row * {
+    /* background-color: green; */
+}
+
+.smart-table-row-data-container {
+    child-left: 8px;
+    child-right: 8px;
+    child-top: 4px;
+    child-bottom: 4px;
+}
+
+.smart-table-divisor {
+    width: 2px;
+    height: 1s;
+    background-color: #888;
+}
+
+resize-handle {
+    width: 1s;
+    height: 0px;
+}
+
+resize-handle element {
+    width: 1s;
+    height: 6px;
+    top: -3px;
+    z-index: 10;
+}
+
+resize-handle.vertical {
+    width: 0px;
+    height: 1s;
+    top: 0px;
+    left: -3px;
+}
+
+resize-handle.vertical element {
+    width: 6px;
+    height: 1s;
+}
