@@ -16,15 +16,13 @@ pub struct SmartTable {
     sizes: Vec<f32>, // derived
 }
 
-impl<'a> SmartTable {
-    pub fn new<S>(cx: &'a mut Context, mut rows: Vec<Vec<S>>) -> Handle<'a, Self>
+impl SmartTable {
+    pub fn new<S>(cx: &mut Context, mut rows: Vec<Vec<S>>) -> Handle<Self>
     where
-        S: Into<&'a str> + Clone,
+        S: ToString,
     {
-        let transformed: Vec<Vec<&str>> =
-            rows.iter_mut().map(|row| row.iter().map(|d| d.clone().into()).collect()).collect();
-
-        drop(rows);
+        let transformed: Vec<Vec<String>> =
+            rows.iter_mut().map(|row| row.iter().map(|d| d.to_string()).collect()).collect();
 
         let sizes_len = transformed.len();
 
@@ -151,12 +149,12 @@ pub struct SmartTableRow {}
 impl SmartTableRow {
     pub fn new<'a, L>(
         cx: &'a mut Context,
-        data: &'a Vec<&'a str>,
+        data: &'a Vec<String>,
         sizes: L,
         header: bool,
     ) -> Handle<'a, Self>
     where
-        L: Lens<Target = Vec<f32>>,
+        L: Lens<Target = Vec<f32>> + Copy,
     {
         Self {}
             .build(cx, |cx| {
@@ -172,11 +170,11 @@ impl SmartTableRow {
                     }
 
                     HStack::new(cx, |cx| {
-                        Label::new(cx, *d).hoverable(false);
+                        Label::new(cx, d).hoverable(false);
                     })
                     .hoverable(false)
                     .class("smart-table-row-data-container")
-                    .width(sizes.clone().map(move |v| {
+                    .width(sizes.map(move |v| {
                         if v[i] == 0.0 {
                             Stretch(1.0)
                         } else {
