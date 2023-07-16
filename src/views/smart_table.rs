@@ -54,8 +54,6 @@ impl View for SmartTable {
                 self.dragging = Some(*n);
 
                 if !self.initialized {
-                    println!("Initialized");
-
                     self.initialized = true;
 
                     // Convert from Stretch units to pixels for each portion.
