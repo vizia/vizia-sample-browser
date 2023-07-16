@@ -3,10 +3,15 @@
 }
 
 :root {
-    background-color: #202020;
+    child-space: 16px;
+    background-color: #181818;
 }
 
 smart-table {
+    background-color: #323232;
+    overflow: hidden;
+    border-radius: 8px;
+    height: auto;
     /* background-color: red; */
 }
 
@@ -16,11 +21,12 @@ smart-table-row {
 }
 
 smart-table-row.header {
-    /* background-color: black; */
+    background-color: #484848;
 }
 
-smart-table-row * {
-    /* background-color: green; */
+smart-table-row.header * {
+    color: #a8a8a8;
+    font-weight: 600;
 }
 
 .smart-table-row-data-container {
@@ -28,12 +34,23 @@ smart-table-row * {
     child-right: 8px;
     child-top: 4px;
     child-bottom: 4px;
+    overflow: hidden;
 }
 
 .smart-table-divisor {
+    width: 1s;
+    height: 2px;
+    background-color: #282828;
+}
+
+.smart-table-divisor.vertical {
     width: 2px;
     height: 1s;
-    background-color: #888;
+    background-color: #282828;
+}
+
+.smart-table-divisor.accent {
+    background-color: #686868;
 }
 
 resize-handle {
@@ -43,19 +60,24 @@ resize-handle {
 
 resize-handle element {
     width: 1s;
-    height: 6px;
-    top: -3px;
-    z-index: 10;
+    height: 8px;
+    top: -4px;
+    z-index: 16;
+    background-color: #8c8c8c00;
+}
+
+resize-handle.active {
+    background-color: #8c8c8c;
 }
 
 resize-handle.vertical {
     width: 0px;
     height: 1s;
-    top: 0px;
-    left: -3px;
 }
 
 resize-handle.vertical element {
-    width: 6px;
+    width: 8px;
     height: 1s;
+    top: 0px;
+    left: -4px;
 }
