@@ -1,5 +1,1 @@
-
-
-pub struct AppData {
-    
-}
+pub struct AppData {}
