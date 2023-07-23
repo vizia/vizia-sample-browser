@@ -20,6 +20,10 @@ smart-table-row {
     /* background-color: blue; */
 }
 
+smart-table-row.even {
+    background-color: #404040;
+}
+
 smart-table-row.header {
     background-color: #484848;
 }
@@ -55,29 +59,74 @@ smart-table-row.header * {
 
 resize-handle {
     width: 1s;
-    height: 0px;
+    height: 6px;
+    top: -3px;
+    z-index: 2;
+    background-color: #336bcc00;
+    transition: background-color 100ms;
 }
 
-resize-handle element {
-    width: 1s;
-    height: 8px;
-    top: -4px;
-    z-index: 16;
-    background-color: #8c8c8c00;
+resize-handle:hover {
+    background-color: #336bcc;
+    transition: background-color 100ms;
 }
 
 resize-handle.active {
-    background-color: #8c8c8c;
+    background-color: #90b7f9;
+    transition: background-color 100ms;
 }
 
 resize-handle.vertical {
-    width: 0px;
-    height: 1s;
-}
-
-resize-handle.vertical element {
-    width: 8px;
+    width: 6px;
     height: 1s;
     top: 0px;
-    left: -4px;
+    left: -2px;
+}
+
+.smart-table-row-popup {
+    background-color: red;
+    child-top: 8px;
+    child-bottom: 8px;
+    border-radius: 4px;
+}
+
+.smart-table-row-popup label {
+    child-left: 8px;
+    child-right: 8px;
+    color: #fff;
+    font-weight: 400;
+}
+
+.right-click-menu {
+    z-index: 100;
+    min-width: 120px;
+    width: auto;
+    height: auto;
+    background-color: #484848;
+    child-space: 8px;
+    border-radius: 8px;
+    box-shadow: 0px 0px 16px #00000044;
+}
+
+.right-click-menu.hidden {
+    background-color: transparent;
+    width: 10px;
+    height: 10px;
+    display: none;
+}
+
+.right-click-menu.topleft-corner {
+    border-radius: 0px 8px 8px 8px;
+}
+
+.right-click-menu.topright-corner {
+    border-top-right-radius: 0px;
+}
+
+.right-click-menu.bottomleft-corner {
+    border-bottom-left-radius: 0px;
+}
+
+.right-click-menu.bottomright-corner {
+    border-bottom-right-radius: 0px;
 }
