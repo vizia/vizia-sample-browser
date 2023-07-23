@@ -96,7 +96,21 @@ impl View for PopupMenu {
 
             PopupEvent::Show => {
                 self.shown = true;
+            }
 
+            PopupEvent::Hide => {
+                self.shown = false;
+            }
+        });
+
+        event.map(|e, _| match e {
+            WindowEvent::MouseDown(m) => {
+                if *m == MouseButton::Left {
+                    cx.emit(PopupEvent::Hide)
+                }
+            }
+
+            WindowEvent::GeometryChanged(e) => {
                 let window_bounds = cx.cache.get_bounds(Entity::root());
 
                 let cursor = (cx.mouse().cursorx, cx.mouse().cursory);
@@ -118,6 +132,8 @@ impl View for PopupMenu {
                     self.corner = Corner::TopLeft;
                 }
 
+                // check vertically
+
                 if desired_pos.1 + height > window_bounds.h - WINDOW_BOUNDS {
                     desired_pos.1 = cursor.1 - height;
                     self.corner = match self.corner {
@@ -133,18 +149,6 @@ impl View for PopupMenu {
                 }
 
                 self.position = desired_pos;
-            }
-
-            PopupEvent::Hide => {
-                self.shown = false;
-            }
-        });
-
-        event.map(|e, _| match e {
-            WindowEvent::MouseDown(m) => {
-                if *m == MouseButton::Left {
-                    cx.emit(PopupEvent::Hide)
-                }
             }
 
             _ => {}
