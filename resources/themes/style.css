@@ -1,9 +1,18 @@
-explorer {
-    width: 300px;
-    height: 1s;
+/* * {
+    border: 1px red;
+} */
+
+browser {
+    size: 1s;
     background-color: #323232;
     child-space: 8px;
     row-between: 8px;
+}
+
+browser label.toggle_folder {
+    size: 24px;
+    child-space: 1s;
+    cursor: hand;
 }
 
 textbox {
@@ -23,15 +32,11 @@ button.menu-button {
 }
 
 .dir-file {
-    color: gray;
     height: 24px;
     border-radius: 4px;
     child-top: 1s;
     child-bottom: 1s;
-}
-
-.dir-file.focused {
-    color: white;
+    cursor: hand;
 }
 
 .dir-file:hover {
@@ -46,31 +51,45 @@ button.menu-button {
     background-color: #525252;
 } */
 
-.dir-file label {
+/* .dir-file label {
     color: gray;
 }
 
 .dir-file.focused label {
     color: white;
-}
+} */
 
 .dir-line {
     background-color: #595959;
     opacity: 0;
-    transition: opacity 0.05 0;
+    transition: opacity 100ms;
 }
 
 .browser:over .dir-line {
     opacity: 1;
-    transition: opacity 0.05 0;
+    transition: opacity 100ms;
 }
 
 .dir-line.focused {
     background-color: #808080;
     opacity: 1;
-    transition: opacity 0.05 0;
+    transition: opacity 100ms;
 }
 
 .browser.hidden {
     min-width: 0px;
+}
+
+resizable-stack {
+    min-width: 200px;
+}
+
+.resize_handle {
+    background-color: #c0c0c000;
+    transition: background-color 100ms;
+}
+
+.resize_handle.drag_handle {
+    background-color: #c0c0c0;
+    transition: background-color 100ms;
 }

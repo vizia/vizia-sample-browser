@@ -1,2 +1,2 @@
-pub mod explorer;
-pub use explorer::*;
+pub mod browser;
+pub use browser::*;
