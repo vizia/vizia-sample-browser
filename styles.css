@@ -97,36 +97,106 @@ resize-handle.vertical {
     font-weight: 400;
 }
 
-.right-click-menu {
+.popup-menu {
     z-index: 100;
     min-width: 120px;
     width: auto;
     height: auto;
     background-color: #484848;
-    child-space: 8px;
+    child-top: 8px;
+    child-bottom: 8px;
     border-radius: 8px;
     box-shadow: 0px 0px 16px #00000044;
+    opacity: 1;
+
+    transition: opacity 100ms;
 }
 
-.right-click-menu.hidden {
+.popup-menu.hidden {
     background-color: transparent;
     width: 10px;
     height: 10px;
-    display: none;
+    opacity: 0;
+
+    transition: opacity 100ms;
 }
 
-.right-click-menu.topleft-corner {
+.popup-menu.topleft-corner {
     border-radius: 0px 8px 8px 8px;
 }
 
-.right-click-menu.topright-corner {
+.popup-menu.topright-corner {
     border-top-right-radius: 0px;
 }
 
-.right-click-menu.bottomleft-corner {
+.popup-menu.bottomleft-corner {
     border-bottom-left-radius: 0px;
 }
 
-.right-click-menu.bottomright-corner {
+.popup-menu.bottomright-corner {
     border-bottom-right-radius: 0px;
+}
+
+popup-divisor {
+    width: 1s;
+    height: 2px;
+    background-color: #323232;
+}
+
+popup-action {
+    width: 1s;
+    height: 22px;
+    child-left: 8px;
+    child-right: 8px;
+    col-between: 4px;
+    background-color: #68686800;
+
+    transition: background-color 100ms;
+}
+
+popup-action > * {
+    top: 1s;
+    bottom: 1s;
+}
+
+popup-action.with-icon {
+    child-left: 4px;
+}
+
+popup-action > label {
+    color: #c4c4c4;
+    top: 1s;
+    bottom: 1s;
+
+    transition: color 100ms;
+}
+
+popup-action > .icon {
+    width: 20px;
+    height: 20px;
+}
+
+popup-action:hover {
+    background-color: #686868;
+
+    transition: background-color 100ms;
+}
+
+popup-action:hover > label {
+    color: #fff;
+
+    transition: color 100ms;
+}
+
+svg {
+    color: #fff;
+    width: 18px;
+    height: 18px;
+    child-space: 1s;
+    opacity: 0;
+}
+
+svg-path {
+    width: 18px;
+    height: 18px;
 }

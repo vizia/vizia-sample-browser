@@ -8,6 +8,8 @@ mod app_data;
 mod popup_menu;
 mod views;
 
+mod svg;
+
 fn main() {
     Application::new(|cx| {
         cx.add_stylesheet(include_style!("styles.css")).unwrap();
