@@ -6,6 +6,9 @@ use state::*;
 mod panels;
 use panels::*;
 
+mod views;
+use views::*;
+
 mod app_data;
 use app_data::*;
 
@@ -27,11 +30,18 @@ fn main() {
         // Uncomment to test in Spanish
         // cx.emit(EnvironmentEvent::SetLocale(langid!("es")));
 
-        AppData { browser: BrowserState::default() }.build(cx);
+        AppData { browser: BrowserState::default(), browser_width: 300.0 }.build(cx);
 
         HStack::new(cx, |cx| {
             // TODO: Place this in resizable stack
-            Explorer::new(cx);
+            ResizableStack::new(
+                cx,
+                AppData::browser_width,
+                |cx, width| cx.emit(AppEvent::SetBrowserWidth(width)),
+                |cx| {
+                    Browser::new(cx);
+                },
+            );
             VStack::new(cx, |cx| {
                 // Sample Player
                 Element::new(cx).background_color(Color::from("#323232"));

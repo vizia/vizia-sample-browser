@@ -11,31 +11,25 @@ pub struct BrowserState {
 #[derive(Debug, Clone, PartialEq)]
 pub enum BrowserEvent {
     ViewAll,
-    SetRootPath(PathBuf),
     SetSelected(PathBuf),
+    #[allow(dead_code)]
     SelectNext,
+    #[allow(dead_code)]
     SelectPrev,
-    ToggleOpen,
+    ToggleOpen(PathBuf),
 }
 
 #[derive(Debug, Clone, Data, Lens)]
 pub struct File {
     pub name: String,
-    pub file_path: Option<PathBuf>,
+    pub path: Option<PathBuf>,
     pub children: Vec<File>,
     pub is_open: bool,
-    pub is_dir: bool,
 }
 
 impl Default for File {
     fn default() -> Self {
-        Self {
-            name: String::new(),
-            file_path: None,
-            children: Vec::new(),
-            is_open: true,
-            is_dir: true,
-        }
+        Self { name: String::new(), path: None, children: Vec::new(), is_open: true }
     }
 }
 
@@ -44,12 +38,11 @@ impl Default for BrowserState {
         Self {
             root_file: File {
                 name: String::from("root"),
-                file_path: Some(PathBuf::from("test_files")),
+                path: Some(PathBuf::from("test_files/Drum Sounds")),
                 children: vec![],
                 is_open: true,
-                is_dir: true,
             },
-            selected: Some(PathBuf::from("test_files")),
+            selected: Some(PathBuf::from("test_files/Drum Sounds")),
         }
     }
 }
@@ -64,16 +57,8 @@ impl Model for BrowserState {
                 }
             }
 
-            BrowserEvent::SetRootPath(path) => {
-                if let Some(root) = visit_dirs(path.as_path()) {
-                    self.root_file = root;
-                }
-            }
-
-            BrowserEvent::ToggleOpen => {
-                if let Some(path) = &self.selected {
-                    toggle_open(&mut self.root_file, path);
-                }
+            BrowserEvent::ToggleOpen(path) => {
+                toggle_open(&mut self.root_file, path);
             }
 
             // Set the selected directory item by path
@@ -107,7 +92,7 @@ enum RetItem<'a> {
 }
 
 fn toggle_open(root: &mut File, path: &PathBuf) {
-    if root.file_path == Some(path.clone()) {
+    if root.path == Some(path.clone()) {
         root.is_open ^= true;
     } else {
         for child in root.children.iter_mut() {
@@ -123,8 +108,8 @@ fn recursive_next<'a>(
     dir: Option<PathBuf>,
 ) -> RetItem<'a> {
     if let Some(prev) = prev {
-        if prev.file_path == dir {
-            return RetItem::Found(root.file_path.clone());
+        if prev.path == dir {
+            return RetItem::Found(root.path.clone());
         }
     }
 
@@ -148,9 +133,9 @@ fn recursive_prev<'a>(
     mut prev: Option<&'a File>,
     dir: Option<PathBuf>,
 ) -> RetItem<'a> {
-    if root.file_path == dir {
+    if root.path == dir {
         if let Some(prev) = prev {
-            return RetItem::Found(prev.file_path.clone());
+            return RetItem::Found(prev.path.clone());
         }
     }
 
@@ -179,32 +164,12 @@ fn visit_dirs(dir: &Path) -> Option<File> {
             let path = entry.path();
             if path.is_dir() {
                 children.push(visit_dirs(&path)?);
-            } else {
-                children.push(File {
-                    name: entry.path().file_name()?.to_str()?.to_string(),
-                    file_path: Some(entry.path()),
-                    children: vec![],
-                    is_open: true,
-                    is_dir: false,
-                })
             }
         }
     }
 
-    // Sort by alphabetical
+    // Sort by alphabetical (should this be a setting?)
     children.sort_by(|a, b| a.name.cmp(&b.name));
-    // Sort by directory vs file
-    children.sort_by(|a, b| {
-        let a_is_dir: bool = a.children.is_empty();
-        let b_is_dir: bool = b.children.is_empty();
-        a_is_dir.cmp(&b_is_dir)
-    });
 
-    Some(File {
-        name,
-        file_path: Some(PathBuf::from(dir)),
-        children,
-        is_open: true,
-        is_dir: dir.is_dir(),
-    })
+    Some(File { name, path: Some(PathBuf::from(dir)), children, is_open: true })
 }
