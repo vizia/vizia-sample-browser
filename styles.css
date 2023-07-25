@@ -2,6 +2,11 @@
     color: #fff;
 }
 
+icon {
+    width: 20px;
+    height: 20px;
+}
+
 :root {
     child-space: 16px;
     background-color: #181818;
@@ -186,17 +191,4 @@ popup-action:hover > label {
     color: #fff;
 
     transition: color 100ms;
-}
-
-svg {
-    color: #fff;
-    width: 18px;
-    height: 18px;
-    child-space: 1s;
-    opacity: 0;
-}
-
-svg-path {
-    width: 18px;
-    height: 18px;
 }

@@ -1,7 +1,5 @@
 use vizia::prelude::*;
 
-use crate::svg::SvgDisplay;
-
 #[derive(Lens)]
 pub struct PopupAction {
     on_action: Option<Box<dyn Fn(&mut EventContext) + Send + Sync>>,
@@ -13,7 +11,7 @@ pub enum PopupActionEvent {
 }
 
 impl PopupAction {
-    pub fn new<'a, S>(cx: &'a mut Context, label: S, icon: Option<crate::svg::Icon>) -> Handle<Self>
+    pub fn new<'a, S>(cx: &'a mut Context, label: S, icon: Option<&'a str>) -> Handle<'a, Self>
     where
         S: ToString,
     {
@@ -23,7 +21,7 @@ impl PopupAction {
             .build(cx, |cx| {
                 match icon {
                     Some(i) => {
-                        SvgDisplay::new(cx, i).hoverable(false);
+                        Icon::new(cx, i).hoverable(false);
                     }
                     None => {}
                 }

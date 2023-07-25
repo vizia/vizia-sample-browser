@@ -1,14 +1,15 @@
 use std::sync::Arc;
 
-use vizia::{context::TreeProps, prelude::*};
+use vizia::{
+    context::TreeProps,
+    icons::{ICON_EYE, ICON_EYE_OFF},
+    prelude::*,
+};
 
 use crate::popup_menu::{
     popup_action::{PopupAction, PopupActionHandle},
-    popup_divisor::PopupDivisor,
     MenuMeta, PopupEvent,
 };
-
-use crate::svg::Icon;
 
 pub const CELL_MIN_SIZE_PX: f32 = 100.0;
 
@@ -115,6 +116,7 @@ impl View for SmartTable {
             }
 
             SmartTableEvent::ToggleShow(n) => {
+                println!("GOT TOGGLE {:?}", n);
                 self.shown[*n] = !self.shown[*n];
                 //
             }
@@ -217,19 +219,6 @@ impl SmartTableRow {
                         }));
                     }
                 }
-
-                // if header {
-                //     Popup::new(cx, SmartTableRow::popup, true, |cx| {
-                //         Label::new(cx, "Hide Column")
-                //             .cursor(CursorIcon::Hand)
-                //             .on_press_down(|cx| cx.emit(SmartTableRowEvent::HidePopup));
-                //     })
-                //     .left(SmartTableRow::popup_pos.map(|v| Pixels(v.0)))
-                //     .top(SmartTableRow::popup_pos.map(|v| Pixels(v.1)))
-                //     .position_type(PositionType::SelfDirected)
-                //     .class("smart-table-row-popup")
-                //     .on_blur(|cx| cx.emit(SmartTableRowEvent::HidePopup));
-                // }
             })
             .focusable(true)
             .hoverable(true)
@@ -254,17 +243,16 @@ impl View for SmartTableRow {
                     let callback = move |cx: &mut Context| {
                         let mut i = 0;
                         for h in data.clone() {
-                            if i != 0 && i % 2 == 0 {
-                                PopupDivisor::new(cx);
-                            }
                             PopupAction::new(
                                 cx,
                                 &h,
-                                Some(if shown[i] { Icon::EYE_CLOSED } else { Icon::EYE }),
+                                Some(if shown[i] { ICON_EYE } else { ICON_EYE_OFF }),
                             )
                             .on_action(move |cx| {
-                                let parent = cx.parent();
-                                cx.emit_to(parent, SmartTableEvent::ToggleShow(i));
+                                println!("{:?}", i);
+                                cx.emit(
+                                    Event::new(SmartTableEvent::ToggleShow(i)).direct(cx.parent()),
+                                );
                             });
                             i += 1;
                         }

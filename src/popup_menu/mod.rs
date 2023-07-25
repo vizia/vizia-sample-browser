@@ -83,6 +83,11 @@ impl View for PopupMenu {
             }
 
             PopupEvent::Show => {
+                if self.shown {
+                    cx.emit(PopupEvent::Hide);
+                    return;
+                }
+
                 let window_bounds = cx.cache.get_bounds(Entity::root());
 
                 let width = cx.bounds().width();
@@ -128,57 +133,5 @@ impl View for PopupMenu {
                 self.shown = false;
             }
         });
-
-        event.map(|e, _| match e {
-            WindowEvent::MouseDown(m) => {
-                if *m == MouseButton::Left {
-                    cx.emit(PopupEvent::Hide)
-                }
-            }
-
-            _ => {}
-        })
     }
 }
-
-// pub trait PopupMenuHandle: Sized + DataContext {
-//     fn on_blur<F>(self, f: F) -> Self
-//     where
-//         F: 'static + Fn(&mut EventContext);
-// }
-
-// impl<'a> PopupMenuHandle for Handle<'a, PopupMenu> {
-//     fn on_blur<F>(mut self, f: F) -> Self
-//     where
-//         F: 'static + Fn(&mut EventContext),
-//     {
-//         let focus_event = Box::new(f);
-//         let cx = self.context();
-//         let entity = self.entity();
-//         cx.with_current(entity, |cx| {
-//             cx.add_listener(move |popup: &mut PopupMenu, cx, event| {
-//                 event.map(|window_event, meta| match window_event {
-//                     WindowEvent::MouseDown(_) => {
-//                         if popup.shown && meta.origin != cx.current() {
-//                             // Check if the mouse was pressed outside of any descendants
-//                             if !cx.hovered().is_descendant_of(cx.tree, cx.current()) {
-//                                 (focus_event)(cx);
-//                                 meta.consume();
-//                             }
-//                         }
-//                     }
-
-//                     WindowEvent::KeyDown(code, _) => {
-//                         if popup.shown && *code == Code::Escape {
-//                             (focus_event)(cx);
-//                         }
-//                     }
-
-//                     _ => {}
-//                 });
-//             });
-//         });
-
-//         self
-//     }
-// }
