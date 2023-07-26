@@ -17,6 +17,7 @@ pub enum BrowserEvent {
     #[allow(dead_code)]
     SelectPrev,
     ToggleOpen(PathBuf),
+    ToggleShowSearch,
 }
 
 #[derive(Debug, Clone, Data, Lens)]
@@ -81,6 +82,8 @@ impl Model for BrowserState {
                     self.selected = path;
                 }
             }
+
+            _ => {}
         });
     }
 }
