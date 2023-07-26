@@ -29,7 +29,7 @@ pub struct SmartTable {
     shown: Vec<bool>,
     sizes: Vec<f32>, // derived
     data: Vec<Vec<String>>,
-    show_menu: bool,
+    show_menu: Option<(f32, f32)>,
 }
 
 impl SmartTable {
@@ -46,7 +46,7 @@ impl SmartTable {
             limiters: vec![0.0; collumns_len - 1],
             sizes: vec![0.0; collumns_len],
             data: data.get(cx),
-            show_menu: false,
+            show_menu: None,
         }
         .build(cx, move |cx| {
             for i in 0..data.get(cx).len() {
@@ -122,7 +122,7 @@ impl View for SmartTable {
             }
 
             SmartTableEvent::ShowMenu => {
-                self.show_menu = true;
+                self.show_menu = Some(cx.mouse().right.pos_down);
             }
 
             SmartTableEvent::StartDrag(n) => {
