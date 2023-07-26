@@ -76,9 +76,6 @@ impl View for PopupMenu {
                 self.popup = menu.clone();
 
                 em.consume();
-                cx.needs_redraw();
-                cx.needs_relayout();
-                cx.needs_restyle()
             }
 
             PopupEvent::Show => {

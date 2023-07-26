@@ -68,6 +68,12 @@ smart-table-row.header * {
     background-color: #686868;
 }
 
+.smart-table-divisor:disabled {
+    width: 0px;
+    height: 0px;
+    display: none;
+}
+
 resize-handle {
     width: 1s;
     height: 6px;
@@ -94,6 +100,12 @@ resize-handle.vertical {
     left: -2px;
 }
 
+resize-handle:disabled {
+    width: 0px;
+    height: 0px;
+    display: none;
+}
+
 .smart-table-row-popup {
     background-color: red;
     child-top: 8px;
@@ -110,12 +122,10 @@ resize-handle.vertical {
 
 .popup-menu {
     z-index: 100;
-    min-width: 120px;
+    min-width: 160px;
     width: auto;
     height: auto;
-    background-color: #484848;
-    child-top: 8px;
-    child-bottom: 8px;
+    background-color: #282828;
     border-radius: 8px;
     box-shadow: 0px 0px 16px #00000044;
     opacity: 1;
@@ -156,39 +166,39 @@ popup-divisor {
 
 popup-action {
     width: 1s;
-    height: 22px;
+    height: auto;
+    child-top: 4px;
+    child-bottom: 4px;
     child-left: 8px;
     child-right: 8px;
     col-between: 4px;
-    background-color: #68686800;
+    background-color: #18181800;
 
     transition: background-color 100ms;
-}
-
-popup-action > * {
-    top: 1s;
-    bottom: 1s;
 }
 
 popup-action.with-icon {
     child-left: 4px;
 }
 
-popup-action > label {
-    color: #c4c4c4;
+popup-action label {
+    color: #a8a8a8;
     top: 1s;
     bottom: 1s;
 
     transition: color 100ms;
 }
 
-popup-action > .icon {
-    width: 20px;
-    height: 20px;
+popup-action.active icon {
+    color: #a8a8a8;
+}
+
+popup-action icon {
+    color: #8c8c8c;
 }
 
 popup-action:hover {
-    background-color: #686868;
+    background-color: #181818;
 
     transition: background-color 100ms;
 }

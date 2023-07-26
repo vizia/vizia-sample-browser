@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use vizia::{
-    context::TreeProps,
     icons::{ICON_EYE, ICON_EYE_OFF},
     prelude::*,
 };
@@ -113,6 +112,31 @@ impl View for SmartTable {
             SmartTableEvent::ToggleShow(n) => {
                 self.shown[*n] = !self.shown[*n];
 
+                if self.shown[*n] {
+                    let v_w = cx.cache.get_width(cx.current());
+                    let b_w = cx.bounds().x;
+                    let w = (v_w - b_w) / cx.scale_factor();
+
+                    // check no oversize
+                    let sum: f32 = self.sizes.iter().sum();
+                    let perc = sum / w;
+                    if perc > 1. {
+                        for (i, size) in self.sizes.iter_mut().enumerate() {
+                            if i != *n {
+                                *size *= 1. / perc;
+                            }
+                        }
+                    }
+                }
+
+                let mut acc = 0.0;
+                for (i, l) in self.limiters.iter_mut().enumerate() {
+                    if self.shown[i] {
+                        acc += self.sizes[i];
+                        *l = acc;
+                    }
+                }
+
                 update_right_click_menu(cx, cx.current(), self.data[0].clone(), self.shown.clone());
 
                 em.consume();
@@ -128,9 +152,24 @@ impl View for SmartTable {
 
                     let delta_x = (x - b_w) - self.limiters[i];
 
-                    let prev_limiter = if i == 0 { 0.0 } else { self.limiters[i - 1] };
-                    let next_limiter =
-                        if i == self.limiters.len() - 1 { w } else { self.limiters[i + 1] };
+                    let prev_limiter = {
+                        let mut last = 0.0f32;
+                        for i in 0..i {
+                            if self.shown[i] {
+                                last = self.limiters[i];
+                            }
+                        }
+                        last
+                    };
+                    let next_limiter = {
+                        let mut last = w;
+                        for i in (i + 1..self.shown.len() - 1).rev() {
+                            if self.shown[i] {
+                                last = self.limiters[i];
+                            }
+                        }
+                        last
+                    };
 
                     // Update new limiter position
 
@@ -195,8 +234,17 @@ where
                 let data_len = data.get(cx).len();
                 for i in 0..data_len {
                     if i != 0 {
-                        let element =
-                            Element::new(cx).class("smart-table-divisor").class("vertical");
+                        let element = Element::new(cx)
+                            .class("smart-table-divisor")
+                            .class("vertical")
+                            .disabled(SmartTable::shown.map(move |v| !{
+                                //
+                                if i - 1 == data_len - 2 {
+                                    v[i] && v[i - 1]
+                                } else {
+                                    v[i - 1]
+                                }
+                            }));
                         if header {
                             element.class("accent");
                             ResizeHandle::new(cx, i - 1, true).toggle_class(
@@ -264,10 +312,13 @@ impl ResizeHandle {
             .build(cx, |_: &mut Context| {})
             .left(SmartTable::limiters.map(move |v| Pixels(v[i] - 2.0 + i as f32 * 1.5)))
             .toggle_class("vertical", vertical)
+            .disabled(SmartTable::shown.map(move |v| !v[i]))
             .position_type(PositionType::SelfDirected)
             .class("resize-handle")
             .cursor(CursorIcon::EwResize)
             .on_press_down(move |cx| cx.emit(SmartTableEvent::StartDrag(i)))
+            .hoverable(true)
+            .focusable(true)
     }
 }
 
@@ -290,10 +341,15 @@ pub fn update_right_click_menu(
     let callback = move |cx: &mut Context| {
         let mut i = 0;
         for h in data.clone() {
-            PopupAction::new(cx, &h, Some(if shown[i] { ICON_EYE } else { ICON_EYE_OFF }))
-                .on_action(move |cx| {
-                    cx.emit_to(target, SmartTableEvent::ToggleShow(i));
-                });
+            PopupAction::new(
+                cx,
+                format!("{} {}", if shown[i] { "Hide" } else { "Show" }, h),
+                Some(if shown[i] { ICON_EYE } else { ICON_EYE_OFF }),
+            )
+            .on_action(move |cx| {
+                cx.emit_to(target, SmartTableEvent::ToggleShow(i));
+            })
+            .toggle_class("active", shown[i]);
             i += 1;
         }
     };
