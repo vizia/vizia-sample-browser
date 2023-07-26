@@ -14,7 +14,6 @@ icon {
 
 smart-table {
     background-color: #323232;
-    overflow: hidden;
     border-radius: 8px;
     height: auto;
     /* background-color: red; */
@@ -120,7 +119,7 @@ resize-handle:disabled {
     font-weight: 400;
 }
 
-.popup-menu {
+popup-menu {
     z-index: 100;
     min-width: 160px;
     width: auto;
@@ -133,7 +132,7 @@ resize-handle:disabled {
     transition: opacity 100ms;
 }
 
-.popup-menu.hidden {
+popup-menu.hidden {
     /* background-color: transparent; */
     /* width: 10px; */
     /* height: 10px; */
@@ -143,19 +142,19 @@ resize-handle:disabled {
     transition: opacity 100ms;
 }
 
-.popup-menu.topleft-corner {
+popup-menu.topleft-corner {
     border-radius: 0px 8px 8px 8px;
 }
 
-.popup-menu.topright-corner {
+popup-menu.topright-corner {
     border-top-right-radius: 0px;
 }
 
-.popup-menu.bottomleft-corner {
+popup-menu.bottomleft-corner {
     border-bottom-left-radius: 0px;
 }
 
-.popup-menu.bottomright-corner {
+popup-menu.bottomright-corner {
     border-bottom-right-radius: 0px;
 }
 

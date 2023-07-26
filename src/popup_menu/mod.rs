@@ -38,7 +38,7 @@ pub struct PopupMenu {
 impl PopupMenu {
     pub fn new(
         cx: &mut Context,
-        shown: impl Lens<Target = bool>,
+        shown: impl Lens<Target = Option<(f32, f32)>>,
         content: impl Fn(&mut Context),
     ) -> Handle<Self> {
         Self {
@@ -49,15 +49,18 @@ impl PopupMenu {
         }
         .build(cx, |cx| {
             (content)(cx);
+
+            Binding::new(cx, shown, |cx, shown| {
+                if let Some((x, y)) = shown.get(cx) {
+                    cx.emit(PopupEvent::Show);
+                }
+            });
         })
-        // .hoverable(shown)
-        .z_index(100)
-        .class("popup-menu")
         .toggle_class("topleft-corner", PopupMenu::corner.map(|v| *v == Corner::TopLeft))
         .toggle_class("topright-corner", PopupMenu::corner.map(|v| *v == Corner::TopRight))
         .toggle_class("bottomleft-corner", PopupMenu::corner.map(|v| *v == Corner::BottomLeft))
         .toggle_class("bottomright-corner", PopupMenu::corner.map(|v| *v == Corner::BottomRight))
-        .toggle_class("hidden", shown.map(|v| !v))
+        .toggle_class("hidden", shown.map(|v| v.is_none()))
         .position_type(PositionType::SelfDirected)
         .left(PopupMenu::position.map(|v| Pixels(v.0)))
         .top(PopupMenu::position.map(|v| Pixels(v.1)))
@@ -70,64 +73,69 @@ impl View for PopupMenu {
     }
 
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
-        // event.map(|e, em| match e {
-        // PopupEvent::SetMenu(entity, menu, meta) => {
-        //     self.target_entity = Some(*entity);
-        //     self.meta = meta.clone();
+        event.map(|e, em| match e {
+            // PopupEvent::SetMenu(entity, menu, meta) => {
+            //     self.target_entity = Some(*entity);
+            //     self.meta = meta.clone();
 
-        //     em.consume();
-        // }
+            //     em.consume();
+            // }
+            PopupEvent::Show => {
+                // if self.shown {
+                //     cx.emit(PopupEvent::Hide);
+                //     return;
+                // }
 
-        // PopupEvent::Show => {
-        //     if self.shown {
-        //         cx.emit(PopupEvent::Hide);
-        //         return;
-        //     }
+                let window_bounds = cx.cache.get_bounds(Entity::root());
 
-        //     let window_bounds = cx.cache.get_bounds(Entity::root());
+                let width = cx.bounds().width();
+                let height = cx.bounds().height();
 
-        //     let width = cx.bounds().width();
-        //     let height = cx.bounds().height();
+                let bounds = cx.bounds();
 
-        //     let cursor = (cx.mouse().cursorx, cx.mouse().cursory);
-        //     let mut desired_pos =
-        //         (cursor.0.floor() + POSITION_OFFSET, cursor.1.floor() + POSITION_OFFSET);
+                let cursor = cx.mouse().right.pos_down;
+                let mut desired_pos = (
+                    cursor.0.floor() - bounds.x + POSITION_OFFSET,
+                    cursor.1.floor() - bounds.y + POSITION_OFFSET,
+                );
 
-        //     // Check horizontally
-        //     self.corner = Corner::TopLeft;
-        //     if desired_pos.0 + width > window_bounds.w - WINDOW_BOUNDS {
-        //         // Right-side overflow
-        //         desired_pos.0 = cursor.0 - width;
-        //         self.corner = Corner::TopRight;
-        //     } else if desired_pos.0 < WINDOW_BOUNDS {
-        //         // Left-side overflow
-        //         desired_pos.0 = WINDOW_BOUNDS;
-        //     }
+                // Check horizontally
+                self.corner = Corner::TopLeft;
+                if desired_pos.0 + width > window_bounds.w - WINDOW_BOUNDS {
+                    // Right-side overflow
+                    desired_pos.0 = cursor.0 - width;
+                    self.corner = Corner::TopRight;
+                } else if desired_pos.0 < WINDOW_BOUNDS {
+                    // Left-side overflow
+                    desired_pos.0 = WINDOW_BOUNDS;
+                }
 
-        //     // Check vertically
-        //     if desired_pos.1 + height > window_bounds.h - WINDOW_BOUNDS {
-        //         // Right-side overflow
-        //         desired_pos.1 = cursor.1 - height;
-        //         self.corner = match self.corner {
-        //             Corner::TopRight => Corner::BottomRight,
-        //             _ => Corner::BottomLeft,
-        //         };
-        //     } else if desired_pos.1 < WINDOW_BOUNDS {
-        //         // Left-side overflow
-        //         desired_pos.1 = WINDOW_BOUNDS;
-        //         self.corner = match self.corner {
-        //             Corner::TopRight => Corner::BottomRight,
-        //             _ => Corner::BottomLeft,
-        //         };
-        //     }
+                // Check vertically
+                if desired_pos.1 + height > window_bounds.h - WINDOW_BOUNDS {
+                    // Right-side overflow
+                    desired_pos.1 = cursor.1 - height;
+                    self.corner = match self.corner {
+                        Corner::TopRight => Corner::BottomRight,
+                        _ => Corner::BottomLeft,
+                    };
+                } else if desired_pos.1 < WINDOW_BOUNDS {
+                    // Left-side overflow
+                    desired_pos.1 = WINDOW_BOUNDS;
+                    self.corner = match self.corner {
+                        Corner::TopRight => Corner::BottomRight,
+                        _ => Corner::BottomLeft,
+                    };
+                }
 
-        //     cx.set_translate((Pixels(desired_pos.0), Pixels(desired_pos.1)));
-        //     self.shown = true;
-        // }
+                let scale = cx.scale_factor();
 
-        // PopupEvent::Hide => {
-        //     self.shown = false;
-        // }
-        // });
+                cx.set_translate((Pixels(desired_pos.0 / scale), Pixels(desired_pos.1 / scale)));
+                cx.needs_redraw();
+                // self.shown = true;
+            } // PopupEvent::Hide => {
+            //     self.shown = false;
+            // }
+            _ => {}
+        });
     }
 }
