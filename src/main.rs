@@ -35,8 +35,6 @@ fn main() {
         .build(cx);
 
         SmartTable::new(cx, AppData::smart_table_data);
-
-        PopupMenu::new(cx);
     })
     .ignore_default_theme()
     .title("Vizia Sample Browser")

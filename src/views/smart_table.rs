@@ -7,7 +7,7 @@ use vizia::{
 
 use crate::popup_menu::{
     popup_action::{PopupAction, PopupActionHandle},
-    MenuMeta, PopupEvent,
+    MenuMeta, PopupEvent, PopupMenu,
 };
 
 pub const CELL_MIN_SIZE_PX: f32 = 100.0;
@@ -18,6 +18,7 @@ pub enum SmartTableEvent {
     StartDrag(usize),
     StopDrag,
     ToggleShow(usize),
+    ShowMenu,
 }
 
 #[derive(Lens)]
@@ -28,6 +29,7 @@ pub struct SmartTable {
     shown: Vec<bool>,
     sizes: Vec<f32>, // derived
     data: Vec<Vec<String>>,
+    show_menu: bool,
 }
 
 impl SmartTable {
@@ -44,6 +46,7 @@ impl SmartTable {
             limiters: vec![0.0; collumns_len - 1],
             sizes: vec![0.0; collumns_len],
             data: data.get(cx),
+            show_menu: false,
         }
         .build(cx, move |cx| {
             for i in 0..data.get(cx).len() {
@@ -59,6 +62,30 @@ impl SmartTable {
                 )
                 .toggle_class("even", i % 2 == 0);
             }
+
+            PopupMenu::new(cx, SmartTable::show_menu, |cx| {
+                List::new(cx, data.map(|data| data[0].clone()), |cx, index, item| {
+                    let shown_lens = SmartTable::shown.index(index);
+
+                    Binding::new(cx, item, move |cx, name| {
+                        Binding::new(cx, shown_lens, move |cx, shown| {
+                            let is_shown = shown.get(cx);
+                            let name = name.get(cx);
+                            PopupAction::new(
+                                cx,
+                                format!("{} {}", if is_shown { "Hide" } else { "Show" }, name),
+                                Some(if is_shown { ICON_EYE } else { ICON_EYE_OFF }),
+                            )
+                            .on_action(move |cx| {
+                                cx.emit(SmartTableEvent::ToggleShow(index));
+                            })
+                            .toggle_class("active", shown_lens)
+                            .width(Stretch(1.0));
+                        });
+                    });
+                })
+                .width(Stretch(1.0));
+            });
 
             cx.emit(SmartTableEvent::Initialize);
         })
@@ -92,6 +119,10 @@ impl View for SmartTable {
                         *l = acc;
                     }
                 }
+            }
+
+            SmartTableEvent::ShowMenu => {
+                self.show_menu = true;
             }
 
             SmartTableEvent::StartDrag(n) => {
@@ -136,8 +167,6 @@ impl View for SmartTable {
                         *l = acc;
                     }
                 }
-
-                update_right_click_menu(cx, cx.current(), self.data[0].clone(), self.shown.clone());
 
                 em.consume();
             }
@@ -289,13 +318,7 @@ where
         event.map(|e, _| match e {
             WindowEvent::MouseDown(b) => {
                 if self.is_header && *b == MouseButton::Right {
-                    update_right_click_menu(
-                        cx,
-                        self.parent,
-                        self.data.get(cx),
-                        SmartTable::shown.get(cx),
-                    );
-                    open_right_click_menu(cx);
+                    cx.emit(SmartTableEvent::ShowMenu);
                 }
             }
 
@@ -326,40 +349,4 @@ impl View for ResizeHandle {
     fn element(&self) -> Option<&'static str> {
         Some("resize-handle")
     }
-}
-
-pub fn open_right_click_menu(cx: &mut EventContext) {
-    cx.emit_custom(Event::new(PopupEvent::Show).propagate(Propagation::Subtree));
-}
-
-pub fn update_right_click_menu(
-    cx: &mut EventContext,
-    target: Entity,
-    data: Vec<String>,
-    shown: Vec<bool>,
-) {
-    let callback = move |cx: &mut Context| {
-        let mut i = 0;
-        for h in data.clone() {
-            PopupAction::new(
-                cx,
-                format!("{} {}", if shown[i] { "Hide" } else { "Show" }, h),
-                Some(if shown[i] { ICON_EYE } else { ICON_EYE_OFF }),
-            )
-            .on_action(move |cx| {
-                cx.emit_to(target, SmartTableEvent::ToggleShow(i));
-            })
-            .toggle_class("active", shown[i]);
-            i += 1;
-        }
-    };
-
-    cx.emit_custom(
-        Event::new(PopupEvent::SetMenu(
-            cx.current(),
-            Some(Arc::new(callback)),
-            MenuMeta { hide_on_click: false },
-        ))
-        .propagate(Propagation::Subtree),
-    );
 }
