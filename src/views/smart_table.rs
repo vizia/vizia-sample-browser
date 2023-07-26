@@ -28,6 +28,7 @@ pub struct SmartTable {
     limiters: Vec<f32>,
     shown: Vec<bool>,
     sizes: Vec<f32>, // derived
+    data: Vec<Vec<String>>,
 }
 
 impl SmartTable {
@@ -43,28 +44,22 @@ impl SmartTable {
             shown: vec![true; collumns_len],
             limiters: vec![0.0; collumns_len - 1],
             sizes: vec![0.0; collumns_len],
+            data: data.get(cx),
         }
         .build(cx, move |cx| {
-            Binding::new(cx, data, move |cx, d| {
-                Binding::new(cx, SmartTable::shown, move |cx, _| {
-                    let mut data = d.get(cx);
-
-                    let transformed: Vec<Vec<String>> = data
-                        .iter_mut()
-                        .map(|row| row.iter().map(|d| d.to_string()).collect())
-                        .collect();
-
-                    for (i, row) in transformed.iter().enumerate() {
-                        if i != 0 {
-                            Element::new(cx)
-                                .class("smart-table-divisor")
-                                .toggle_class("accent", i == 1);
-                        }
-                        SmartTableRow::new(cx, row.clone(), i == 0)
-                            .toggle_class("even", i % 2 == 0);
-                    }
-                });
-            });
+            for i in 0..data.get(cx).len() {
+                if i != 0 {
+                    Element::new(cx).class("smart-table-divisor").toggle_class("accent", i == 1);
+                }
+                SmartTableRow::new(
+                    cx,
+                    data.map(move |v| v[i].clone()),
+                    SmartTable::shown,
+                    i == 0,
+                    cx.current(),
+                )
+                .toggle_class("even", i % 2 == 0);
+            }
 
             cx.emit(SmartTableEvent::Initialize);
         })
@@ -116,9 +111,11 @@ impl View for SmartTable {
             }
 
             SmartTableEvent::ToggleShow(n) => {
-                println!("GOT TOGGLE {:?}", n);
                 self.shown[*n] = !self.shown[*n];
-                //
+
+                update_right_click_menu(cx, cx.current(), self.data[0].clone(), self.shown.clone());
+
+                em.consume();
             }
         });
 
@@ -179,45 +176,50 @@ impl View for SmartTable {
 }
 
 #[derive(Lens)]
-pub struct SmartTableRow {
+pub struct SmartTableRow<D: Lens> {
+    parent: Entity,
     is_header: bool,
-    data: Vec<String>,
+    data: D,
 }
 
-impl SmartTableRow {
-    pub fn new(cx: &mut Context, data: Vec<String>, header: bool) -> Handle<Self> {
-        Self { is_header: header, data: data.clone() }
+impl<D> SmartTableRow<D>
+where
+    D: Lens<Target = Vec<String>>,
+{
+    pub fn new<S>(cx: &mut Context, data: D, shown: S, header: bool, parent: Entity) -> Handle<Self>
+    where
+        S: Lens<Target = Vec<bool>>,
+    {
+        Self { parent, is_header: header, data: data.clone() }
             .build(cx, move |cx| {
-                let shown = SmartTable::shown.get(cx);
-                for (i, d) in data.iter().enumerate() {
-                    let s = shown[i];
-                    if s {
-                        if i != 0 {
-                            let element =
-                                Element::new(cx).class("smart-table-divisor").class("vertical");
-                            if header {
-                                element.class("accent");
-                                ResizeHandle::new(cx, i - 1, true).toggle_class(
-                                    "active",
-                                    SmartTable::dragging
-                                        .map(move |d| d.is_some() && d.unwrap() == i - 1),
-                                );
-                            }
+                let data_len = data.get(cx).len();
+                for i in 0..data_len {
+                    if i != 0 {
+                        let element =
+                            Element::new(cx).class("smart-table-divisor").class("vertical");
+                        if header {
+                            element.class("accent");
+                            ResizeHandle::new(cx, i - 1, true).toggle_class(
+                                "active",
+                                SmartTable::dragging
+                                    .map(move |d| d.is_some() && d.unwrap() == i - 1),
+                            );
                         }
-
-                        HStack::new(cx, |cx| {
-                            Label::new(cx, d).hoverable(false);
-                        })
-                        .hoverable(false)
-                        .class("smart-table-row-data-container")
-                        .width(SmartTable::sizes.map(move |v| {
-                            if v[i] == 0.0 {
-                                Stretch(1.0)
-                            } else {
-                                Pixels(v[i])
-                            }
-                        }));
                     }
+
+                    HStack::new(cx, move |cx| {
+                        Label::new(cx, data.map(move |v| v[i].clone())).hoverable(false);
+                    })
+                    .hoverable(false)
+                    .toggle_class("hidden", shown.map(move |v| !v[i]))
+                    .class("smart-table-row-data-container")
+                    .width(SmartTable::sizes.map(move |v| {
+                        if v[i] == 0.0 {
+                            Stretch(1.0)
+                        } else {
+                            Pixels(v[i])
+                        }
+                    }));
                 }
             })
             .focusable(true)
@@ -227,7 +229,10 @@ impl SmartTableRow {
     }
 }
 
-impl View for SmartTableRow {
+impl<D> View for SmartTableRow<D>
+where
+    D: Lens<Target = Vec<String>>,
+{
     fn element(&self) -> Option<&'static str> {
         Some("smart-table-row")
     }
@@ -236,38 +241,13 @@ impl View for SmartTableRow {
         event.map(|e, _| match e {
             WindowEvent::MouseDown(b) => {
                 if self.is_header && *b == MouseButton::Right {
-                    let prop = Propagation::Subtree;
-
-                    let data = self.data.clone();
-                    let shown = SmartTable::shown.get(cx);
-                    let callback = move |cx: &mut Context| {
-                        let mut i = 0;
-                        for h in data.clone() {
-                            PopupAction::new(
-                                cx,
-                                &h,
-                                Some(if shown[i] { ICON_EYE } else { ICON_EYE_OFF }),
-                            )
-                            .on_action(move |cx| {
-                                println!("{:?}", i);
-                                cx.emit(
-                                    Event::new(SmartTableEvent::ToggleShow(i)).direct(cx.parent()),
-                                );
-                            });
-                            i += 1;
-                        }
-                    };
-
-                    cx.emit_custom(
-                        Event::new(PopupEvent::SetMenu(
-                            cx.current(),
-                            Some(Arc::new(callback)),
-                            MenuMeta { hide_on_click: false },
-                        ))
-                        .propagate(prop),
+                    update_right_click_menu(
+                        cx,
+                        self.parent,
+                        self.data.get(cx),
+                        SmartTable::shown.get(cx),
                     );
-
-                    cx.emit_custom(Event::new(PopupEvent::Show).propagate(prop));
+                    open_right_click_menu(cx);
                 }
             }
 
@@ -295,4 +275,35 @@ impl View for ResizeHandle {
     fn element(&self) -> Option<&'static str> {
         Some("resize-handle")
     }
+}
+
+pub fn open_right_click_menu(cx: &mut EventContext) {
+    cx.emit_custom(Event::new(PopupEvent::Show).propagate(Propagation::Subtree));
+}
+
+pub fn update_right_click_menu(
+    cx: &mut EventContext,
+    target: Entity,
+    data: Vec<String>,
+    shown: Vec<bool>,
+) {
+    let callback = move |cx: &mut Context| {
+        let mut i = 0;
+        for h in data.clone() {
+            PopupAction::new(cx, &h, Some(if shown[i] { ICON_EYE } else { ICON_EYE_OFF }))
+                .on_action(move |cx| {
+                    cx.emit_to(target, SmartTableEvent::ToggleShow(i));
+                });
+            i += 1;
+        }
+    };
+
+    cx.emit_custom(
+        Event::new(PopupEvent::SetMenu(
+            cx.current(),
+            Some(Arc::new(callback)),
+            MenuMeta { hide_on_click: false },
+        ))
+        .propagate(Propagation::Subtree),
+    );
 }

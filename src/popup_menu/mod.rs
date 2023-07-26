@@ -48,13 +48,11 @@ impl PopupMenu {
             meta: MenuMeta { hide_on_click: false },
         }
         .build(cx, |cx| {
-            Binding::new(cx, PopupMenu::shown, |cx, _| {
-                let popup = PopupMenu::popup.get(cx);
-
-                if let Some(p) = popup {
+            Binding::new(cx, PopupMenu::popup, |cx, popup| {
+                if let Some(p) = popup.get(cx) {
                     (p)(cx)
                 }
-            })
+            });
         })
         .hoverable(PopupMenu::shown)
         .class("popup-menu")
@@ -71,15 +69,16 @@ impl PopupMenu {
 
 impl View for PopupMenu {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
-        event.map(|e, _| match e {
+        event.map(|e, em| match e {
             PopupEvent::SetMenu(entity, menu, meta) => {
                 self.target_entity = Some(*entity);
                 self.meta = meta.clone();
                 self.popup = menu.clone();
 
-                cx.needs_restyle();
-                cx.needs_relayout();
+                em.consume();
                 cx.needs_redraw();
+                cx.needs_relayout();
+                cx.needs_restyle()
             }
 
             PopupEvent::Show => {

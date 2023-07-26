@@ -46,6 +46,12 @@ smart-table-row.header * {
     overflow: hidden;
 }
 
+.smart-table-row-data-container.hidden {
+    width: 0px;
+    display: none;
+    pointer-events: none;
+}
+
 .smart-table-divisor {
     width: 1s;
     height: 2px;
