@@ -1,0 +1,212 @@
+/* * {
+    border: 1px red;
+} */
+
+.panel-icon {
+    color: #90b7f9;
+    font-size: 20;
+    size: 28px;
+}
+
+.header icon {
+    size: 28px;
+}
+
+.button-group {
+    background-color: #484848;
+    border-radius: 4px;
+    font-size: 20;
+}
+
+browser {
+    size: 1s;
+    background-color: #323232;
+    child-space: 8px;
+    row-between: 8px;
+}
+
+browser > .header {
+    height: 28px;
+    width: 1s;
+    col-between: 1s;
+}
+
+browser > .footer {
+    height: auto;
+    width: 1s;
+    child-left: 1s;
+    child-right: 1s;
+}
+
+.folder-icon:checked {
+    color: #90b7f9;
+}
+
+.searchbar {
+    max-height: 0px;
+    transition: max-height 100ms;
+    overflow: hidden;
+}
+
+.searchbar.shown {
+    max-height: 28px;
+    transition: max-height 100ms;
+}
+
+textbox.search {
+    background-color: #484848;
+}
+
+textbox.search:checked {
+    background-color: #484848;
+}
+
+textbox.search .placeholder {
+    color: #a8a8a8;
+}
+
+toggle-button {
+    background-color: #484848;
+    size: 28px;
+    border-radius: 4px;
+}
+
+toggle-button:checked {
+    background-color: #336bcc;
+}
+
+icon {
+    size: 20px;
+    /* border: 1px red; */
+}
+
+browser icon.toggle_folder {
+    cursor: hand;
+}
+
+textbox {
+    border-color: transparent;
+    background-color: #484848;
+    height: 28px;
+}
+
+button.menu-button {
+    background-color: #484848;
+    size: 28px;
+    font-size: 20;
+}
+
+.header.browser {
+    left: 0px;
+}
+
+.footer > label {
+    background-color: #282828;
+    border-radius: 4px;
+    child-top: 4px;
+    child-bottom: 4px;
+    child-left: 8px;
+    child-right: 8px;
+}
+
+.dir-item > label {
+    height: 20px;
+    /* border: 1px blue; */
+}
+
+.dir-item {
+    height: 28px;
+    width: 1s;
+    border-radius: 4px;
+    child-space: 4px;
+    col-between: 3px;
+    cursor: hand;
+}
+
+.dir-item:hover {
+    background-color: #3d3d3d;
+}
+
+.dir-item.selected {
+    background-color: #336bcc2f;
+}
+
+/* .dir-file.selected:over {
+    background-color: #525252;
+} */
+
+/* .dir-file label {
+    color: gray;
+}
+
+.dir-file.focused label {
+    color: white;
+} */
+
+.dir-line {
+    background-color: #595959;
+    opacity: 1;
+    transition: opacity 100ms;
+}
+
+.browser:over .dir-line {
+    opacity: 1;
+    transition: opacity 100ms;
+}
+
+.dir-line.focused {
+    background-color: #808080;
+    opacity: 1;
+    transition: opacity 100ms;
+}
+
+.browser.hidden {
+    min-width: 0px;
+}
+
+resizable-stack {
+    min-width: 200px;
+    max-width: 600px;
+}
+
+.resize_handle {
+    background-color: #c0c0c000;
+    transition: background-color 100ms;
+}
+
+.resize_handle.drag_handle {
+    background-color: #c0c0c0;
+    transition: background-color 100ms;
+}
+
+scrollview > scroll_content {
+    width: 1s;
+    right: 0px;
+    min-width: 0px;
+    transition: right 100ms;
+}
+
+scrollview:checked > scroll_content {
+    right: 16px;
+    transition: right 100ms;
+}
+
+scrollview scrollbar.vertical {
+    width: 0px;
+    transition: width 100ms;
+}
+
+scrollview:checked scrollbar.vertical {
+    width: 8px;
+    transition: width 100ms;
+}
+
+scrollbar {
+    background-color: #282828;
+    border-radius: 4px;
+}
+
+scrollbar .thumb {
+    background-color: #484848;
+    border-radius: 4px;
+}
