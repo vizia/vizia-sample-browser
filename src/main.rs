@@ -1,6 +1,9 @@
 use app_data::AppData;
 use views::smart_table::SmartTable;
-use vizia::prelude::*;
+use vizia::{
+    icons::{ICON_LIST_SEARCH, ICON_SEARCH},
+    prelude::*,
+};
 
 mod state;
 use state::*;
@@ -34,28 +37,37 @@ fn main() {
         // Uncomment to test in Spanish
         // cx.emit(EnvironmentEvent::SetLocale(langid!("es")));
 
+        let headers =
+            vec!["Name", "Tags", "Duration", "Sample Rate", "Bit Depth", "BPM", "Key", "Size"]
+                .iter_mut()
+                .map(|v| v.to_string())
+                .collect::<Vec<_>>();
+
+        let rows = (0..20)
+            .map(|row| {
+                vec![
+                    &format!("MSL_snare_{:02}", row),
+                    "?",
+                    "5.3 sec",
+                    "44100",
+                    "24",
+                    "?",
+                    "?",
+                    "2.5MB",
+                ]
+                .iter_mut()
+                .map(|v| v.to_string())
+                .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+
         AppData {
             browser: BrowserState::default(),
             browser_width: 300.0,
             table_height: 300.0,
-            smart_table_data: vec![
-                vec!["Col 1", "Col 2", "Col 3", "Col 4"]
-                    .iter_mut()
-                    .map(|v| v.to_string())
-                    .collect(),
-                vec!["data 1.1", "data 1.2", "data 1.3", "data 1.4"]
-                    .iter_mut()
-                    .map(|v| v.to_string())
-                    .collect(),
-                vec!["data 2.1", "data 2.2", "data 2.3", "data 2.4"]
-                    .iter_mut()
-                    .map(|v| v.to_string())
-                    .collect(),
-                vec!["data 3.1", "data 3.2", "data 3.3", "data 3.4"]
-                    .iter_mut()
-                    .map(|v| v.to_string())
-                    .collect(),
-            ],
+            table_headers: headers,
+            table_rows: rows,
+            search_text: String::new(),
         }
         .build(cx);
 
@@ -67,7 +79,10 @@ fn main() {
                 ResizeStackDirection::Right,
                 |cx, width| cx.emit(AppEvent::SetBrowserWidth(width)),
                 |cx| {
-                    Browser::new(cx);
+                    VStack::new(cx, |cx| {
+                        Browser::new(cx);
+                    })
+                    .class("panel");
                 },
             );
             VStack::new(cx, |cx| {
@@ -78,7 +93,48 @@ fn main() {
                     ResizeStackDirection::Bottom,
                     |cx, height| cx.emit(AppEvent::SetTableHeight(height)),
                     |cx| {
-                        SmartTable::new(cx, AppData::smart_table_data);
+                        VStack::new(cx, |cx| {
+                            HStack::new(cx, |cx| {
+                                Icon::new(cx, ICON_LIST_SEARCH).class("panel-icon");
+
+                                HStack::new(cx, |cx| {
+                                    Textbox::new(cx, AppData::search_text)
+                                        .class("icon-before")
+                                        .width(Stretch(1.0))
+                                        .class("search")
+                                        .placeholder("Search");
+                                    // .on_edit(|cx, text| cx.emit(AppDataSetter::EditableText(text)));
+                                    Icon::new(cx, ICON_SEARCH)
+                                        .color(Color::gray())
+                                        .size(Pixels(28.0))
+                                        .position_type(PositionType::SelfDirected);
+                                })
+                                .height(Auto)
+                                .width(Stretch(1.0));
+                            })
+                            .col_between(Pixels(8.0))
+                            .height(Auto)
+                            .class("header");
+
+                            SmartTable::new(
+                                cx,
+                                AppData::table_headers,
+                                AppData::table_rows,
+                                |cx, item| {
+                                    Label::new(cx, item)
+                                        .width(Stretch(1.0))
+                                        .border_color(Color::bisque())
+                                        // .border_width(Pixels(1.0))
+                                        .child_space(Stretch(1.0))
+                                        .child_left(if item.idx() == 0 {
+                                            Pixels(4.0)
+                                        } else {
+                                            Stretch(1.0)
+                                        });
+                                },
+                            );
+                        })
+                        .class("panel");
                     },
                 );
                 // Sample Player
@@ -91,5 +147,6 @@ fn main() {
         .size(Stretch(1.0));
     })
     .title("Vizia Sample Browser")
+    .inner_size((1400, 800))
     .run();
 }

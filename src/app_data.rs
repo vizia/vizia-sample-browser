@@ -7,7 +7,9 @@ pub struct AppData {
     pub browser: BrowserState,
     pub browser_width: f32,
     pub table_height: f32,
-    pub smart_table_data: Vec<Vec<String>>,
+    pub table_headers: Vec<String>,
+    pub table_rows: Vec<Vec<String>>,
+    pub search_text: String,
 }
 
 pub enum AppEvent {
