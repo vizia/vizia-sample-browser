@@ -169,13 +169,13 @@ button.menu-button {
     min-width: 0px;
 }
 
-resizable-stack.panel {
+/* resizable-stack {
     size: 1s;
     min-width: 200px;
     max-width: 600px;
     min-height: 200px;
     max-height: 600px;
-}
+} */
 
 .panel {
     size: 1s;

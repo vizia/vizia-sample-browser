@@ -7,7 +7,7 @@ use vizia::icons::{
 use vizia::prelude::*;
 
 use crate::app_data::AppData;
-use crate::state::browser::file_derived_lenses::children;
+use crate::state::browser::directory_derived_lenses::children;
 use crate::state::browser::*;
 use crate::views::{ToggleButton, ToggleButtonModifiers};
 
@@ -23,9 +23,12 @@ impl Browser {
         Self { search_text: String::new(), search_shown: true, tree_view: true }.build(cx, |cx| {
             cx.emit(BrowserEvent::ViewAll);
 
-            // Panel icon
+            // Panel Header
             HStack::new(cx, |cx| {
+                // Panel Icon
                 Icon::new(cx, ICON_FOLDER_OPEN).class("panel-icon");
+
+                // List/Tree Toggle Buttons
                 HStack::new(cx, |cx| {
                     ToggleButton::new(cx, Browser::tree_view, |cx| Icon::new(cx, ICON_LIST_TREE));
                     ToggleButton::new(cx, Browser::tree_view.map(|flag| !flag), |cx| {
@@ -34,12 +37,14 @@ impl Browser {
                 })
                 .class("button-group")
                 .width(Auto);
+
+                // Search Toggle Button
                 ToggleButton::new(cx, Browser::search_shown, |cx| Icon::new(cx, ICON_SEARCH))
                     .on_toggle(|cx| cx.emit(BrowserEvent::ToggleShowSearch));
             })
             .class("header");
 
-            // Top bar
+            // Search Box
             HStack::new(cx, |cx| {
                 Textbox::new(cx, Browser::search_text)
                     .width(Stretch(1.0))
@@ -57,11 +62,11 @@ impl Browser {
             .col_between(Pixels(8.0))
             .height(Auto);
 
-            //
+            // Folder Treeview
             ScrollView::new(cx, 0.0, 0.0, false, true, |cx| {
                 treeview(
                     cx,
-                    AppData::browser.then(BrowserState::root_file),
+                    AppData::browser.then(BrowserState::libraries.index(0)),
                     0,
                     directory,
                     |cx, item, level| {
@@ -76,7 +81,7 @@ impl Browser {
                 );
             });
 
-            // Footer
+            // Panel Footer
             HStack::new(cx, |cx| {
                 Label::new(cx, "550 samples in 34 folders");
             })
@@ -100,9 +105,9 @@ impl View for Browser {
 
 fn directory<L>(cx: &mut Context, root: L, level: u32)
 where
-    L: Lens<Target = File>,
+    L: Lens<Target = Directory>,
 {
-    Binding::new(cx, root.then(File::path), move |cx, file_path| {
+    Binding::new(cx, root.then(Directory::path), move |cx, file_path| {
         let file_path1 = file_path.get(cx);
         let file_path2 = file_path.get(cx);
         let file_path3 = file_path.get(cx);
@@ -115,9 +120,9 @@ where
             // Arrow Icon
             Icon::new(cx, ICON_CHEVRON_DOWN)
                 .class("toggle_folder")
-                .visibility(root.then(File::children).map(|c| !c.is_empty()))
-                .hoverable(root.then(File::children).map(|c| !c.is_empty()))
-                .rotate(root.then(File::is_open).map(|flag| {
+                .visibility(root.then(Directory::children).map(|c| !c.is_empty()))
+                .hoverable(root.then(Directory::children).map(|c| !c.is_empty()))
+                .rotate(root.then(Directory::is_open).map(|flag| {
                     if *flag {
                         Angle::Deg(0.0)
                     } else {
@@ -130,6 +135,8 @@ where
                         cx.emit(BrowserEvent::SetSelected(file_path.clone()));
                     }
                 });
+
+            // Folder Icon
             Icon::new(
                 cx,
                 selected_lens
@@ -137,9 +144,17 @@ where
             )
             .class("folder-icon")
             .checked(selected_lens);
+
             // Directory name
-            Label::new(cx, root.then(File::name))
+            Label::new(cx, root.then(Directory::name))
                 .width(Stretch(1.0))
+                .text_wrap(false)
+                .hoverable(false);
+
+            // Number of Files
+            Label::new(cx, root.then(Directory::num_files))
+                .width(Auto)
+                .left(Stretch(1.0))
                 .text_wrap(false)
                 .hoverable(false);
         })
@@ -170,19 +185,19 @@ fn treeview<L>(
     lens: L,
     level: u32,
     header: impl Fn(&mut Context, L, u32),
-    content: impl Fn(&mut Context, Index<Then<L, Wrapper<children>>, File>, u32) + 'static,
+    content: impl Fn(&mut Context, Index<Then<L, Wrapper<children>>, Directory>, u32) + 'static,
 ) where
-    L: Lens<Target = File>,
+    L: Lens<Target = Directory>,
     L::Source: Model,
 {
     let content = Rc::new(content);
     VStack::new(cx, |cx| {
         (header)(cx, lens, level);
-        Binding::new(cx, lens.then(File::is_open), move |cx, is_open| {
+        Binding::new(cx, lens.then(Directory::is_open), move |cx, is_open| {
             if is_open.get(cx) {
                 let content1 = content.clone();
                 VStack::new(cx, |cx| {
-                    List::new(cx, lens.then(File::children), move |cx, _, item| {
+                    List::new(cx, lens.then(Directory::children), move |cx, _, item| {
                         (content1)(cx, item, level + 1);
                     })
                     .width(Stretch(1.0))

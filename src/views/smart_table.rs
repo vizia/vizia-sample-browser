@@ -1,7 +1,4 @@
-use std::sync::Arc;
-
 use vizia::{
-    binding::{Map, MapRef},
     icons::{ICON_EYE, ICON_EYE_OFF},
     prelude::*,
 };
@@ -18,9 +15,7 @@ pub const CELL_MIN_SIZE_PX: f32 = 100.0;
 #[derive(Clone, Copy, Debug)]
 pub enum SmartTableEvent {
     Initialize,
-    StartDrag(usize),
-    StopDrag,
-    ToggleShow(usize),
+    ToggleColumn(usize),
     SetColWidth(usize, f32),
     ShowMenu,
 }
@@ -166,8 +161,6 @@ impl View for SmartTable {
                     self.initialized = true;
 
                     // Convert from Stretch units to pixels for each portion.
-                    let v_w = cx.cache.get_width(cx.current());
-                    let b_w = cx.bounds().x;
                     let bounds = cx.bounds();
 
                     let w = bounds.w / cx.scale_factor();
@@ -176,12 +169,6 @@ impl View for SmartTable {
                     for size in self.widths.iter_mut() {
                         *size = Pixels(stretch_width);
                     }
-
-                    // let mut acc = 0.0;
-                    // for (i, l) in self.limiters.iter_mut().enumerate() {
-                    //     acc += self.widths[i];
-                    //     *l = acc;
-                    // }
                 }
             }
 
@@ -205,22 +192,7 @@ impl View for SmartTable {
                 self.show_menu = Some(cx.mouse().right.pos_down);
             }
 
-            SmartTableEvent::StartDrag(n) => {
-                self.dragging = Some(*n);
-
-                cx.capture();
-                cx.lock_cursor_icon();
-                em.consume();
-            }
-            SmartTableEvent::StopDrag => {
-                self.dragging = None;
-
-                cx.release();
-                cx.unlock_cursor_icon();
-                em.consume();
-            }
-
-            SmartTableEvent::ToggleShow(n) => {
+            SmartTableEvent::ToggleColumn(n) => {
                 self.shown[*n] = !self.shown[*n];
 
                 if self.shown[*n] {
@@ -250,74 +222,6 @@ impl View for SmartTable {
 
                 em.consume();
             }
-        });
-
-        event.map(|e, _| match e {
-            // WindowEvent::MouseMove(x, _) => {
-            //     if let Some(i) = self.dragging {
-            //         let v_w = cx.cache.get_width(cx.current());
-            //         let b_w = cx.bounds().x;
-            //         let w = (v_w - b_w) / cx.scale_factor(); // total width
-
-            //         let delta_x = (x - b_w) - self.limiters[i];
-
-            //         let prev_limiter = {
-            //             let mut last = 0.0f32;
-            //             for i in 0..i {
-            //                 if self.shown[i] {
-            //                     last = self.limiters[i];
-            //                 }
-            //             }
-            //             last
-            //         };
-            //         let next_limiter = {
-            //             let mut last = w;
-            //             for i in (i + 1..self.shown.len() - 1).rev() {
-            //                 if self.shown[i] {
-            //                     last = self.limiters[i];
-            //                 }
-            //             }
-            //             last
-            //         };
-
-            //         // Update new limiter position
-
-            //         if delta_x.is_sign_positive() {
-            //             self.limiters[i] += delta_x;
-
-            //             // Min width
-            //             if next_limiter - self.limiters[i] < CELL_MIN_SIZE_PX {
-            //                 self.limiters[i] = next_limiter - CELL_MIN_SIZE_PX;
-            //             }
-            //         } else {
-            //             // Min width
-            //             self.limiters[i] += delta_x;
-            //             if self.limiters[i] - prev_limiter < CELL_MIN_SIZE_PX {
-            //                 self.limiters[i] = prev_limiter + CELL_MIN_SIZE_PX;
-            //             }
-            //         }
-
-            //         // Set new Sizes
-
-            //         // if i == 0 {
-            //         //     self.widths[i] = self.limiters[i];
-            //         // } else {
-            //         //     self.sizes[i] = self.limiters[i] - prev_limiter;
-            //         // }
-
-            //         // if i == self.limiters.len() - 1 {
-            //         //     self.sizes[i + 1] = w - self.limiters[i]
-            //         // } else {
-            //         //     self.sizes[i + 1] = next_limiter - self.limiters[i];
-            //         // }
-            //     }
-            // }
-            WindowEvent::MouseUp(b) => {
-                if *b == MouseButton::Left {
-                    cx.emit(SmartTableEvent::StopDrag)
-                }
-            }
-            _ => {}
         });
     }
 }
@@ -418,7 +322,6 @@ impl ResizeHandle {
             .position_type(PositionType::SelfDirected)
             .class("resize-handle")
             .cursor(CursorIcon::EwResize)
-            .on_press_down(move |cx| cx.emit(SmartTableEvent::StartDrag(i)))
             .hoverable(true)
             .focusable(true)
     }
