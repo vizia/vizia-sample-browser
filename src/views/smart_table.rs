@@ -15,6 +15,8 @@ pub const CELL_MIN_SIZE_PX: f32 = 100.0;
 #[derive(Clone, Copy, Debug)]
 pub enum SmartTableEvent {
     Initialize,
+    StartDrag,
+    StopDrag,
     ToggleColumn(usize),
     SetColWidth(usize, f32),
     ShowMenu,
@@ -22,7 +24,7 @@ pub enum SmartTableEvent {
 
 #[derive(Lens)]
 pub struct SmartTable {
-    dragging: Option<usize>,
+    dragging: bool,
     initialized: bool,
     limiters: Vec<f32>,
     shown: Vec<bool>,
@@ -51,7 +53,7 @@ impl SmartTable {
         let num_cols = headers.map(|h| h.len()).get(cx);
 
         Self {
-            dragging: None,
+            dragging: false,
             initialized: false,
             shown: vec![true; num_cols],
             limiters: vec![0.0; num_cols - 1],
@@ -72,6 +74,7 @@ impl SmartTable {
                 )
                 .height(Auto);
             })
+            .hoverable(true)
             .class("header")
             .width(Stretch(1.0))
             .layout_type(LayoutType::Row);
@@ -96,6 +99,7 @@ impl SmartTable {
 
             cx.emit(SmartTableEvent::Initialize);
         })
+        .toggle_class("dragging", SmartTable::dragging)
 
         // Self {
         //     dragging: None,
@@ -170,6 +174,14 @@ impl View for SmartTable {
                         *size = Pixels(stretch_width);
                     }
                 }
+            }
+
+            SmartTableEvent::StartDrag => {
+                self.dragging = true;
+            }
+
+            SmartTableEvent::StopDrag => {
+                self.dragging = true;
             }
 
             SmartTableEvent::SetColWidth(index, width) => {
@@ -259,11 +271,8 @@ where
                             }));
                         if header {
                             element.class("accent");
-                            ResizeHandle::new(cx, i - 1, true).toggle_class(
-                                "active",
-                                SmartTable::dragging
-                                    .map(move |d| d.is_some() && d.unwrap() == i - 1),
-                            );
+                            ResizeHandle::new(cx, i - 1, true)
+                                .toggle_class("active", SmartTable::dragging);
                         }
                     }
 

@@ -185,12 +185,29 @@ button.menu-button {
 }
 
 .resize_handle {
-    background-color: #c0c0c000;
+    background-color: #484848;
+    transition: background-color 100ms;
+    transition: opacity 100ms;
+    opacity: 0;
+}
+
+smart-table.dragging .resize_handle {
+    opacity: 1;
+    transition: opacity 100ms;
+}
+
+smart-table .header:hover .resize_handle {
+    opacity: 1;
+    transition: opacity 100ms;
+}
+
+.resize_handle:over {
+    background-color: #336bcc;
     transition: background-color 100ms;
 }
 
 .resize_handle.drag_handle {
-    background-color: #c0c0c0;
+    background-color: #90b7f9;
     transition: background-color 100ms;
 }
 
@@ -311,7 +328,7 @@ resize-handle {
     height: 6px;
     top: -3px;
     z-index: 2;
-    background-color: #336bcc00;
+    background-color: #18181800;
     transition: background-color 100ms;
 }
 
