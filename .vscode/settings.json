@@ -9,5 +9,5 @@
 		"editor.defaultFormatter": "esbenp.prettier-vscode",
 	},
 	"prettier.tabWidth": 4,
-	"css.lint.unknownProperties": "ignore"
+	"css.lint.unknownProperties": "ignore",
 }
