@@ -1,28 +1,37 @@
 CREATE TABLE collection (
-    name nvarchar(255)  PRIMARY KEY,
-    sub_collections     nvarchar(255) NULL,
-    audio_files         nvarchar(255) NULL,
+    id                  integer UNIQUE PRIMARY KEY,
+    parent_collection   integer NULL,
+    name                nvarchar(255),
     created_at          timestamp,
 
-    FOREIGN KEY(audio_files) REFERENCES audio_files(location)
-    FOREIGN KEY(sub_collections) REFERENCES collection(name)
+    FOREIGN KEY(parent_collection) REFERENCES collection(id)
 );
 
 CREATE TABLE audio_files (
-    location            nvarchar(255) UNIQUE PRIMARY KEY,
-    tags                nvarchar(255),
+    id                  integer UNIQUE PRIMARY KEY,
+    collection          integer,
     duration            integer,
     sample_rate         integer,
     bit_depth           integer,
-    bpm                 integer,
-    key                 integer,
+    bpm                 integer NULL,
+    key                 integer NULL,
     size                integer,
     created_at          timestamp,
 
-    FOREIGN KEY(tags) REFERENCES tags(id)
+    FOREIGN KEY(collection) REFERENCES collection(name)
 );
 
 CREATE TABLE tags (
     id                  nvarchar(255) PRIMARY KEY,
     color               integer
+);
+
+CREATE TABLE audio_files_tags (
+    audio_file          integer,
+    tag                 varchar,
+
+    PRIMARY KEY (audio_file, tag)
+
+    FOREIGN KEY(audio_file) REFERENCES audio_files(id)
+    FOREIGN KEY(tag) REFERENCES tags(id)
 );
