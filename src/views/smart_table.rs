@@ -15,6 +15,8 @@ pub const CELL_MIN_SIZE_PX: f32 = 100.0;
 #[derive(Clone, Copy, Debug)]
 pub enum SmartTableEvent {
     Initialize,
+    StartDrag(usize),
+    StopDrag,
     ToggleColumn(usize),
     SetColWidth(usize, f32),
     ShowMenu,
@@ -27,7 +29,6 @@ pub struct SmartTable {
     limiters: Vec<f32>,
     shown: Vec<bool>,
     widths: Vec<Units>, // derived
-    // data: Vec<Vec<String>>,
     show_menu: Option<(f32, f32)>,
 }
 
@@ -60,21 +61,39 @@ impl SmartTable {
             show_menu: None,
         }
         .build(cx, |cx| {
-            List::new(cx, headers, |cx, col_index, item| {
-                ResizableStack::new(
-                    cx,
-                    Self::widths.index(col_index).map(|val| val.to_px(0.0, 1000.0)),
-                    ResizeStackDirection::Right,
-                    move |cx, width| cx.emit(SmartTableEvent::SetColWidth(col_index, width)),
-                    |cx| {
+            VStack::new(cx, |cx| {
+                List::new(cx, headers, |cx, col_index, item| {
+                    // ResizableStack::new(
+                    //     cx,
+                    //     Self::widths.index(col_index).map(|val| val.to_px(0.0, 1000.0)),
+                    //     ResizeStackDirection::Right,
+                    //     move |cx, width| cx.emit(SmartTableEvent::SetColWidth(col_index, width)),
+                    //     |cx| {
+                    //         Label::new(cx, item).class("column-heading");
+                    //     },
+                    // )
+                    // .height(Auto);
+
+                    HStack::new(cx, move |cx| {
                         Label::new(cx, item).class("column-heading");
-                    },
-                )
-                .height(Auto);
+                    })
+                    .width(Self::widths.index(col_index))
+                    .height(Auto);
+                })
+                .hoverable(true)
+                .class("header")
+                .width(Stretch(1.0))
+                .layout_type(LayoutType::Row);
+
+                List::new(cx, SmartTable::limiters, |cx, idx, limiter| {
+                    ResizeHandle::new(cx, limiter, idx, true)
+                        .background_color(Color::red())
+                        .height(Pixels(20.0));
+                })
+                .height(Auto)
+                .position_type(PositionType::SelfDirected);
             })
-            .class("header")
-            .width(Stretch(1.0))
-            .layout_type(LayoutType::Row);
+            .height(Auto);
             //
             VirtualList::new(cx, rows, 26.0, move |cx, row_index, row| {
                 //
@@ -96,6 +115,7 @@ impl SmartTable {
 
             cx.emit(SmartTableEvent::Initialize);
         })
+        .toggle_class("dragging", SmartTable::dragging.map(|dragging| dragging.is_some()))
 
         // Self {
         //     dragging: None,
@@ -169,7 +189,28 @@ impl View for SmartTable {
                     for size in self.widths.iter_mut() {
                         *size = Pixels(stretch_width);
                     }
+
+                    let mut acc = 0.0;
+                    for (i, l) in self.limiters.iter_mut().enumerate() {
+                        acc += self.widths[i].to_px(0.0, 0.0);
+                        *l = acc;
+                    }
                 }
+            }
+
+            SmartTableEvent::StartDrag(index) => {
+                self.dragging = Some(*index);
+                cx.capture();
+                cx.lock_cursor_icon();
+                em.consume();
+            }
+
+            SmartTableEvent::StopDrag => {
+                self.dragging = None;
+
+                cx.release();
+                cx.unlock_cursor_icon();
+                em.consume();
             }
 
             SmartTableEvent::SetColWidth(index, width) => {
@@ -223,105 +264,173 @@ impl View for SmartTable {
                 em.consume();
             }
         });
-    }
-}
 
-#[derive(Lens)]
-pub struct SmartTableRow<D: Lens> {
-    parent: Entity,
-    is_header: bool,
-    data: D,
-}
+        event.map(|e, _| match e {
+            WindowEvent::MouseMove(x, _) => {
+                if let Some(limiter) = self.dragging {
+                    let v_w = cx.cache.get_width(cx.current());
+                    let b_w = cx.bounds().x;
+                    let w = (v_w - b_w) / cx.scale_factor(); // total width
+                    let delta_x = (x - b_w) / cx.scale_factor() - self.limiters[limiter];
+                    let prev_limiter = {
+                        let mut last = 0.0f32;
+                        for i in 0..limiter {
+                            if self.shown[i] {
+                                last = self.limiters[i];
+                            }
+                        }
+                        last
+                    };
+                    let next_limiter = {
+                        let mut last = w;
+                        for i in (limiter + 1..self.shown.len() - 1).rev() {
+                            if self.shown[i] {
+                                last = self.limiters[i];
+                            }
+                        }
+                        last
+                    };
 
-impl<D> SmartTableRow<D>
-where
-    D: Lens<Target = Vec<String>>,
-{
-    pub fn new<S>(cx: &mut Context, data: D, shown: S, header: bool, parent: Entity) -> Handle<Self>
-    where
-        S: Lens<Target = Vec<bool>>,
-    {
-        Self { parent, is_header: header, data: data.clone() }
-            .build(cx, move |cx| {
-                let data_len = data.get(cx).len();
-                for i in 0..data_len {
-                    if i != 0 {
-                        let element = Element::new(cx)
-                            .class("smart-table-divisor")
-                            .class("vertical")
-                            .disabled(SmartTable::shown.map(move |v| !{
-                                //
-                                if i - 1 == data_len - 2 {
-                                    v[i] && v[i - 1]
-                                } else {
-                                    v[i - 1]
-                                }
-                            }));
-                        if header {
-                            element.class("accent");
-                            ResizeHandle::new(cx, i - 1, true).toggle_class(
-                                "active",
-                                SmartTable::dragging
-                                    .map(move |d| d.is_some() && d.unwrap() == i - 1),
-                            );
+                    let scale = cx.scale_factor();
+
+                    // Update new limiter position
+                    if delta_x.is_sign_positive() {
+                        self.limiters[limiter] += delta_x / scale;
+                        // Min width
+                        if next_limiter - self.limiters[limiter] < CELL_MIN_SIZE_PX {
+                            self.limiters[limiter] = next_limiter - CELL_MIN_SIZE_PX;
+                        }
+                    } else {
+                        // Min width
+                        self.limiters[limiter] += delta_x / scale;
+                        if self.limiters[limiter] - prev_limiter < CELL_MIN_SIZE_PX {
+                            self.limiters[limiter] = prev_limiter + CELL_MIN_SIZE_PX;
                         }
                     }
 
-                    HStack::new(cx, move |cx| {
-                        Label::new(cx, data.map(move |v| v[i].clone())).hoverable(false);
-                    })
-                    .hoverable(false)
-                    .toggle_class("hidden", shown.map(move |v| !v[i]))
-                    .class("smart-table-row-data-container");
-                    // .width(SmartTable::widths.map(move |v| {
-                    //     if v[i] == 0.0 {
-                    //         Stretch(1.0)
-                    //     } else {
-                    //         Pixels(v[i])
-                    //     }
-                    // }));
-                }
-            })
-            .focusable(true)
-            .hoverable(true)
-            .toggle_class("header", header)
-            .layout_type(LayoutType::Row)
-    }
-}
-
-impl<D> View for SmartTableRow<D>
-where
-    D: Lens<Target = Vec<String>>,
-{
-    fn element(&self) -> Option<&'static str> {
-        Some("smart-table-row")
-    }
-
-    fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
-        event.map(|e, _| match e {
-            WindowEvent::MouseDown(b) => {
-                if self.is_header && *b == MouseButton::Right {
-                    cx.emit(SmartTableEvent::ShowMenu);
+                    // Set new Sizes
+                    if limiter == 0 {
+                        self.widths[limiter] = Pixels(self.limiters[limiter]);
+                    } else {
+                        self.widths[limiter] = Pixels(self.limiters[limiter] - prev_limiter);
+                    }
+                    if limiter == self.limiters.len() - 1 {
+                        self.widths[limiter + 1] = Pixels(w - self.limiters[limiter]);
+                    } else {
+                        self.widths[limiter + 1] = Pixels(next_limiter - self.limiters[limiter]);
+                    }
                 }
             }
-
+            WindowEvent::MouseUp(b) => {
+                if *b == MouseButton::Left {
+                    cx.emit(SmartTableEvent::StopDrag)
+                }
+            }
             _ => {}
         });
     }
 }
 
+// #[derive(Lens)]
+// pub struct SmartTableRow<D: Lens> {
+//     parent: Entity,
+//     is_header: bool,
+//     data: D,
+// }
+
+// impl<D> SmartTableRow<D>
+// where
+//     D: Lens<Target = Vec<String>>,
+// {
+//     pub fn new<S>(cx: &mut Context, data: D, shown: S, header: bool, parent: Entity) -> Handle<Self>
+//     where
+//         S: Lens<Target = Vec<bool>>,
+//     {
+//         Self { parent, is_header: header, data: data.clone() }
+//             .build(cx, move |cx| {
+//                 let data_len = data.get(cx).len();
+//                 for i in 0..data_len {
+//                     if i != 0 {
+//                         let element = Element::new(cx)
+//                             .class("smart-table-divisor")
+//                             .class("vertical")
+//                             .disabled(SmartTable::shown.map(move |v| !{
+//                                 //
+//                                 if i - 1 == data_len - 2 {
+//                                     v[i] && v[i - 1]
+//                                 } else {
+//                                     v[i - 1]
+//                                 }
+//                             }));
+//                         if header {
+//                             element.class("accent");
+//                             ResizeHandle::new(cx, i - 1, true)
+//                                 .toggle_class("active", SmartTable::dragging);
+//                         }
+//                     }
+
+//                     HStack::new(cx, move |cx| {
+//                         Label::new(cx, data.map(move |v| v[i].clone())).hoverable(false);
+//                     })
+//                     .hoverable(false)
+//                     .toggle_class("hidden", shown.map(move |v| !v[i]))
+//                     .class("smart-table-row-data-container");
+//                     // .width(SmartTable::widths.map(move |v| {
+//                     //     if v[i] == 0.0 {
+//                     //         Stretch(1.0)
+//                     //     } else {
+//                     //         Pixels(v[i])
+//                     //     }
+//                     // }));
+//                 }
+//             })
+//             .focusable(true)
+//             .hoverable(true)
+//             .toggle_class("header", header)
+//             .layout_type(LayoutType::Row)
+//     }
+// }
+
+// impl<D> View for SmartTableRow<D>
+// where
+//     D: Lens<Target = Vec<String>>,
+// {
+//     fn element(&self) -> Option<&'static str> {
+//         Some("smart-table-row")
+//     }
+
+//     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
+//         event.map(|e, _| match e {
+//             WindowEvent::MouseDown(b) => {
+//                 if self.is_header && *b == MouseButton::Right {
+//                     cx.emit(SmartTableEvent::ShowMenu);
+//                 }
+//             }
+
+//             _ => {}
+//         });
+//     }
+// }
+
 pub struct ResizeHandle;
 
 impl ResizeHandle {
-    pub fn new(cx: &mut Context, i: usize, vertical: bool) -> Handle<Self> {
+    pub fn new(
+        cx: &mut Context,
+        left: impl Lens<Target = f32>,
+        index: usize,
+        vertical: bool,
+    ) -> Handle<Self> {
         Self {}
             .build(cx, |_: &mut Context| {})
-            .left(SmartTable::limiters.map(move |v| Pixels(v[i] - 2.0 + i as f32 * 1.5)))
+            .left(left.map(|l| Pixels(*l)))
+            // .left(SmartTable::limiters.map(move |v| Pixels(v[i] - 2.0 + i as f32 * 1.5)))
             .toggle_class("vertical", vertical)
-            .disabled(SmartTable::shown.map(move |v| !v[i]))
+            // .disabled(SmartTable::shown.map(move |v| !v[i]))
             .position_type(PositionType::SelfDirected)
             .class("resize-handle")
             .cursor(CursorIcon::EwResize)
+            .on_press_down(move |cx| cx.emit(SmartTableEvent::StartDrag(index)))
             .hoverable(true)
             .focusable(true)
     }
