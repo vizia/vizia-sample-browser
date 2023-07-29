@@ -23,7 +23,7 @@ use app_data::*;
 mod popup_menu;
 
 fn main() {
-    startup_database().unwrap()
+    let database_handle = startup_database(".vsb").unwrap();
 
     // Application::new(|cx| {
     //     // Add resources
