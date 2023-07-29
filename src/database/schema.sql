@@ -2,7 +2,6 @@ CREATE TABLE collection (
     id                  integer UNIQUE PRIMARY KEY,
     parent_collection   integer NULL,
     name                nvarchar(255),
-    created_at          timestamp,
 
     FOREIGN KEY(parent_collection) REFERENCES collection(id)
 );
@@ -16,7 +15,6 @@ CREATE TABLE audio_files (
     bpm                 integer NULL,
     key                 integer NULL,
     size                integer,
-    created_at          timestamp,
 
     FOREIGN KEY(collection) REFERENCES collection(name)
 );

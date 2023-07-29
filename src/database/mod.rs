@@ -1,18 +1,16 @@
 use chrono::{DateTime, Utc};
-use rand::Rng;
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
-use std::{fs, path::PathBuf};
+use std::fs;
 
-mod test;
+mod tests;
 
 pub type CollectionID = i32;
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Collection {
     id: CollectionID,
     parent_collection: Option<CollectionID>,
     name: String,
-    created_at: DateTime<Utc>,
 }
 
 pub type AudioFileID = i32;
@@ -26,7 +24,6 @@ pub struct AudioFiles {
     bpm: Option<f32>,
     key: Option<f32>,
     size: f32,
-    created_at: DateTime<Utc>,
 }
 
 pub type TagID = String;
@@ -47,7 +44,35 @@ pub struct DatabaseHandle<'a> {
 }
 
 impl<'a> DatabaseHandle<'a> {
-    // Abstract away sql queries here
+    pub fn get_root_collection(&self) -> rusqlite::Result<Collection> {
+        let mut query = self.conn.prepare(
+            "SELECT id, parent_collection, name FROM collection WHERE parent_collection IS NULL",
+        )?;
+
+        let col: Collection = query.query_row([], |row| {
+            Ok(Collection { id: row.get(0)?, parent_collection: None, name: row.get(2)? })
+        })?;
+
+        Ok(col)
+    }
+
+    pub fn get_all_collections(&self) -> rusqlite::Result<Vec<Collection>> {
+        let mut query = self.conn.prepare("SELECT id, parent_collection, name FROM collection")?;
+        let collections = query.query_map([], |row| {
+            Ok(Collection { id: row.get(0)?, name: row.get(2)?, parent_collection: row.get(1)? })
+        })?;
+        Ok(collections.map(|v| v.unwrap()).collect())
+    }
+
+    pub fn get_child_collections(&self, parent: CollectionID) -> rusqlite::Result<Vec<Collection>> {
+        let mut query = self.conn.prepare(
+            "SELECT id, parent_collection, name FROM collection WHERE parent_collection = (?1)",
+        )?;
+        let collections = query.query_map([parent], |row| {
+            Ok(Collection { id: row.get(0)?, name: row.get(2)?, parent_collection: row.get(1)? })
+        })?;
+        Ok(collections.map(|v| v.unwrap()).collect())
+    }
 }
 
 pub fn startup_database(path: &str) -> rusqlite::Result<DatabaseHandle> {

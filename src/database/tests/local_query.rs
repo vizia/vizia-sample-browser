@@ -1,13 +1,12 @@
-use chrono::Utc;
-use rand::Rng;
-
-use super::{startup_database, Collection};
-
 #[test]
 fn test() {
-    let handle = startup_database(".test.vsb").unwrap();
+    use crate::database::{Collection, DatabaseHandle};
+    use rand::Rng;
+    use rusqlite::Connection;
 
-    handle.conn.execute_batch(include_str!("schema.sql")).unwrap();
+    let handle = DatabaseHandle { conn: Connection::open_in_memory().unwrap(), rel_path: "" };
+
+    handle.conn.execute_batch(include_str!("../schema.sql")).unwrap();
     // Insert dummy data
     let mut rand_thread = rand::thread_rng();
     for i in 0..100 {
@@ -20,31 +19,25 @@ fn test() {
                 String::from_utf8(vec).unwrap()
             },
             parent_collection: None,
-            created_at: Utc::now(),
         };
 
         handle
             .conn
             .execute(
                 "
-                INSERT INTO collection (name, created_at) VALUES (?1, ?2)
+                INSERT INTO collection (name) VALUES (?1)
             ",
-                (&tmp_col.name, &tmp_col.created_at),
+                [&tmp_col.name],
             )
             .unwrap();
     }
 
     //Query
     {
-        let mut query = handle.conn.prepare("SELECT id, name, created_at FROM collection").unwrap();
+        let mut query = handle.conn.prepare("SELECT id, name FROM collection").unwrap();
         let collection_iter = query
             .query_map([], |row| {
-                Ok(Collection {
-                    id: row.get(0)?,
-                    name: row.get(1)?,
-                    parent_collection: None,
-                    created_at: row.get(2)?,
-                })
+                Ok(Collection { id: row.get(0)?, name: row.get(1)?, parent_collection: None })
             })
             .unwrap();
 
