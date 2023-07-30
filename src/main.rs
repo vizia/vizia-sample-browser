@@ -1,4 +1,5 @@
 use app_data::AppData;
+use rusqlite::Connection;
 use views::smart_table::SmartTable;
 use vizia::{
     icons::{ICON_LIST_SEARCH, ICON_SEARCH},
@@ -23,7 +24,8 @@ use app_data::*;
 mod popup_menu;
 
 fn main() {
-    let database_handle = startup_database(".vsb").unwrap();
+    let database_handle =
+        DatabaseHandle::from_connection("", Some(Connection::open(".vsb").unwrap()));
 
     Application::new(|cx| {
         // Add resources
