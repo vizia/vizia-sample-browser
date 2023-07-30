@@ -72,7 +72,6 @@ fn main() {
         .build(cx);
 
         HStack::new(cx, |cx| {
-            // TODO: Place this in resizable stack
             ResizableStack::new(
                 cx,
                 AppData::browser_width,
