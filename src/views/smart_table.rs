@@ -234,6 +234,7 @@ impl View for SmartTable {
             WindowEvent::MouseMove(x, _) => {
                 if let Some(limiter) = self.dragging {
                     let v_w = cx.cache.get_width(cx.current());
+                    println!("{:?} {:?}", v_w, cx.bounds().w);
                     let b_w = cx.bounds().x;
                     let w = (v_w - b_w) / cx.scale_factor(); // total width
                     let delta_x = (x - b_w) / cx.scale_factor() - self.limiters[limiter];
@@ -247,7 +248,7 @@ impl View for SmartTable {
                         last
                     };
                     let next_limiter = {
-                        let mut last = w;
+                        let mut last = v_w;
                         for i in (limiter + 1..self.shown.len() - 1).rev() {
                             if self.shown[i] {
                                 last = self.limiters[i];
@@ -280,7 +281,7 @@ impl View for SmartTable {
                         self.widths[limiter] = Pixels(self.limiters[limiter] - prev_limiter);
                     }
                     if limiter == self.limiters.len() - 1 {
-                        self.widths[limiter + 1] = Pixels(w - self.limiters[limiter]);
+                        self.widths[limiter + 1] = Pixels(v_w - self.limiters[limiter]);
                     } else {
                         self.widths[limiter + 1] = Pixels(next_limiter - self.limiters[limiter]);
                     }
