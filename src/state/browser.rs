@@ -1,19 +1,22 @@
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+};
 
 use vizia::prelude::*;
 
 #[derive(Debug, Lens, Clone, Data)]
 pub struct BrowserState {
     pub libraries: Vec<Directory>,
-    // pub root_file: File,
-    pub selected: Option<PathBuf>,
+    pub selected: HashSet<PathBuf>,
     pub focused: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum BrowserEvent {
     ViewAll,
-    SetSelected(PathBuf),
+    Select(PathBuf),
+    AddSelection(PathBuf),
     SetFocused(Option<PathBuf>),
     #[allow(dead_code)]
     FocusNext,
@@ -23,6 +26,8 @@ pub enum BrowserEvent {
     ExpandDirectory,
     CollapseDirectory,
     ToggleShowSearch,
+    ShowTree,
+    ShowList,
 }
 
 #[derive(Debug, Clone, Data, Lens)]
@@ -34,12 +39,6 @@ pub struct Directory {
     pub num_files: usize,
 }
 
-// impl Default for Directory {
-//     fn default() -> Self {
-//         Self { name: String::new(), path: None, children: Vec::new(), is_open: true, num_files: 0 }
-//     }
-// }
-
 impl Default for BrowserState {
     fn default() -> Self {
         Self {
@@ -50,7 +49,7 @@ impl Default for BrowserState {
                 is_open: false,
                 num_files: 0,
             }],
-            selected: Some(PathBuf::from("test_files/Drum Sounds")),
+            selected: HashSet::new(),
             focused: Some(PathBuf::from("test_files/Drum Sounds")),
         }
     }
@@ -72,7 +71,6 @@ impl Model for BrowserState {
 
             BrowserEvent::ExpandDirectory => {
                 if let Some(focused) = &self.focused {
-                    println!("focused: {:?}", focused);
                     set_expand_directory(&mut self.libraries[0], focused, true);
                 }
             }
@@ -84,15 +82,16 @@ impl Model for BrowserState {
                     } else {
                         set_expand_directory(&mut self.libraries[0], focused, false);
                     }
-                    // println!("collapse");
-                    // if !set_expand_directory(&mut self.libraries[0], focused, false) {
-                    //     println!("do this");
-                    // }
                 }
             }
 
-            BrowserEvent::SetSelected(path) => {
-                self.selected = Some(path.clone());
+            BrowserEvent::Select(path) => {
+                self.selected.clear();
+                self.selected.insert(path.clone());
+            }
+
+            BrowserEvent::AddSelection(path) => {
+                self.selected.insert(path.clone());
             }
 
             // Set the selected directory item by path

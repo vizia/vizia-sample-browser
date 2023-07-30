@@ -31,10 +31,19 @@ impl Browser {
 
                 // List/Tree Toggle Buttons
                 HStack::new(cx, |cx| {
-                    ToggleButton::new(cx, Browser::tree_view, |cx| Icon::new(cx, ICON_LIST_TREE));
-                    ToggleButton::new(cx, Browser::tree_view.map(|flag| !flag), |cx| {
-                        Icon::new(cx, ICON_LIST)
-                    });
+                    Button::new(
+                        cx,
+                        |cx| cx.emit(BrowserEvent::ShowTree),
+                        |cx| Icon::new(cx, ICON_LIST_TREE),
+                    )
+                    .checked(Browser::tree_view);
+
+                    Button::new(
+                        cx,
+                        |cx| cx.emit(BrowserEvent::ShowList),
+                        |cx| Icon::new(cx, ICON_LIST),
+                    )
+                    .checked(Browser::tree_view.map(|flag| !flag));
                 })
                 .class("button-group")
                 .width(Auto);
@@ -99,6 +108,9 @@ impl View for Browser {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|browser_event, _| match browser_event {
             BrowserEvent::ToggleShowSearch => self.search_shown ^= true,
+
+            BrowserEvent::ShowTree => self.tree_view = true,
+            BrowserEvent::ShowList => self.tree_view = false,
             _ => {}
         });
 
@@ -131,8 +143,8 @@ where
         let file_path2 = file_path.clone();
 
         let selected_lens = AppData::browser
-            .then(BrowserState::focused)
-            .map(move |selected| Some(file_path.clone()) == *selected);
+            .then(BrowserState::selected)
+            .map(move |selected| selected.contains(&file_path));
 
         DirectoryItem::new(cx, root, selected_lens, file_path2)
             .child_left(Pixels(10.0 * level as f32 + 4.0));
@@ -155,7 +167,7 @@ impl DirectoryItem {
             .build(cx, |cx| {
                 // Arrow Icon
                 Icon::new(cx, ICON_CHEVRON_DOWN)
-                    .class("toggle_folder")
+                    .class("dir-arrow")
                     .visibility(root.then(Directory::children).map(|c| !c.is_empty()))
                     .hoverable(root.then(Directory::children).map(|c| !c.is_empty()))
                     .rotate(root.then(Directory::is_open).map(|flag| {
@@ -168,6 +180,7 @@ impl DirectoryItem {
                     .on_press(move |cx| {
                         cx.emit(BrowserEvent::ToggleDirectory(path.clone()));
                         cx.emit(BrowserEvent::SetFocused(Some(path.clone())));
+                        cx.emit(BrowserEvent::Select(path.clone()));
                     });
 
                 // Folder Icon
@@ -177,30 +190,31 @@ impl DirectoryItem {
                         |is_selected| if *is_selected { ICON_FOLDER_FILLED } else { ICON_FOLDER },
                     ),
                 )
-                .class("folder-icon")
+                .class("dir-icon")
                 .checked(selected);
 
                 // Directory name
                 Label::new(cx, root.then(Directory::name))
                     .width(Stretch(1.0))
                     .text_wrap(false)
-                    .hoverable(false);
+                    .hoverable(false)
+                    .overflow(Overflow::Hidden);
 
                 // Number of Files
                 Label::new(cx, root.then(Directory::num_files))
-                    .width(Auto)
-                    .left(Stretch(1.0))
                     .text_wrap(false)
-                    .hoverable(false);
+                    .hoverable(false)
+                    .class("dir-num");
             })
             .navigable(true)
             .class("dir-item")
             .layout_type(LayoutType::Row)
             .toggle_class("selected", selected)
-            .on_press(move |cx| {
-                cx.focus();
-                cx.emit(BrowserEvent::SetFocused(Some(file_path2.clone())));
-            })
+        // .on_press(move |cx| {
+        //     cx.focus();
+        //     cx.emit(BrowserEvent::SetFocused(Some(file_path2.clone())));
+        //     cx.emit(BrowserEvent::Select(file_path2.clone()));
+        // })
     }
 }
 
@@ -220,6 +234,17 @@ impl View for DirectoryItem {
             //     Code::ArrowUp => cx.emit(BrowserEvent::FocusPrev),
             //     _ => {}
             // },
+            WindowEvent::Press { mouse: _ } => {
+                // if *mouse {
+                cx.emit(BrowserEvent::SetFocused(Some(self.path.clone())));
+                cx.focus();
+                if cx.modifiers().contains(Modifiers::CTRL) {
+                    cx.emit(BrowserEvent::AddSelection(self.path.clone()));
+                } else {
+                    cx.emit(BrowserEvent::Select(self.path.clone()));
+                }
+            }
+
             WindowEvent::FocusIn => {
                 cx.emit(BrowserEvent::SetFocused(Some(self.path.clone())));
             }
