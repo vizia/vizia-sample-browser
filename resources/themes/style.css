@@ -81,6 +81,12 @@ toggle-button:checked {
     background-color: #336bcc;
 }
 
+toggle-button:focus-visible {
+    outline: #336bcc;
+    outline-offset: 3px;
+    outline-width: 1px;
+}
+
 icon {
     size: 20px;
 }
@@ -114,12 +120,12 @@ button.menu-button {
     child-right: 8px;
 }
 
-.dir-item > label {
+directory-item > label {
     height: 20px;
     /* border: 1px blue; */
 }
 
-.dir-item {
+directory-item {
     height: 28px;
     width: 1s;
     border-radius: 4px;
@@ -128,12 +134,17 @@ button.menu-button {
     cursor: hand;
 }
 
-.dir-item:hover {
+directory-item:hover {
     background-color: #3d3d3d;
 }
 
-.dir-item.selected {
+directory-item.selected {
     background-color: #336bcc2f;
+}
+
+directory-item:focus {
+    outline: 1px #336bcc;
+    outline-offset: -1px;
 }
 
 /* .dir-file.selected:over {
@@ -191,14 +202,21 @@ button.menu-button {
     opacity: 0;
 }
 
-smart-table.dragging .resize_handle {
+smart-table .handles resize-handle {
+    background-color: #484848;
+    opacity: 0;
+    transition: opacity 100ms 1s;
+}
+
+smart-table.dragging resize-handle {
+    background-color: #336bcc;
     opacity: 1;
     transition: opacity 100ms;
 }
 
-smart-table .header:hover .resize_handle {
+smart-table .handles:hover resize-handle {
     opacity: 1;
-    transition: opacity 100ms;
+    transition: opacity 100ms 200ms;
 }
 
 .resize_handle:over {
@@ -324,11 +342,11 @@ smart-table-row.header * {
 }
 
 resize-handle {
-    width: 1s;
+    width: 1px;
     height: 6px;
-    top: -3px;
     z-index: 2;
-    background-color: #18181800;
+    /* background-color: #18181800; */
+    background-color: #484848;
     transition: background-color 100ms;
 }
 
@@ -343,10 +361,10 @@ resize-handle.active {
 }
 
 resize-handle.vertical {
-    width: 6px;
+    width: 2px;
     height: 1s;
     top: 0px;
-    left: -2px;
+    translate: -1px 0px;
 }
 
 resize-handle:disabled {

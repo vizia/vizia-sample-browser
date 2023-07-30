@@ -14,6 +14,9 @@ impl ToggleButton {
             .build(cx, |cx| {
                 (content)(cx).hoverable(false);
             })
+            .role(Role::ToggleButton)
+            .navigable(true)
+            .default_action_verb(DefaultActionVerb::Click)
             .checked(lens)
     }
 }

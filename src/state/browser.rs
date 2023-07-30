@@ -7,52 +7,57 @@ pub struct BrowserState {
     pub libraries: Vec<Directory>,
     // pub root_file: File,
     pub selected: Option<PathBuf>,
+    pub focused: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum BrowserEvent {
     ViewAll,
     SetSelected(PathBuf),
+    SetFocused(Option<PathBuf>),
     #[allow(dead_code)]
-    SelectNext,
+    FocusNext,
     #[allow(dead_code)]
-    SelectPrev,
-    ToggleOpen(PathBuf),
+    FocusPrev,
+    ToggleDirectory(PathBuf),
+    ExpandDirectory,
+    CollapseDirectory,
     ToggleShowSearch,
 }
 
 #[derive(Debug, Clone, Data, Lens)]
 pub struct Directory {
     pub name: String,
-    pub path: Option<PathBuf>,
+    pub path: PathBuf,
     pub children: Vec<Directory>,
     pub is_open: bool,
     pub num_files: usize,
 }
 
-impl Default for Directory {
-    fn default() -> Self {
-        Self { name: String::new(), path: None, children: Vec::new(), is_open: true, num_files: 0 }
-    }
-}
+// impl Default for Directory {
+//     fn default() -> Self {
+//         Self { name: String::new(), path: None, children: Vec::new(), is_open: true, num_files: 0 }
+//     }
+// }
 
 impl Default for BrowserState {
     fn default() -> Self {
         Self {
             libraries: vec![Directory {
                 name: String::from("root"),
-                path: Some(PathBuf::from("test_files/Drum Sounds")),
+                path: PathBuf::from("test_files/Drum Sounds"),
                 children: vec![],
-                is_open: true,
+                is_open: false,
                 num_files: 0,
             }],
             selected: Some(PathBuf::from("test_files/Drum Sounds")),
+            focused: Some(PathBuf::from("test_files/Drum Sounds")),
         }
     }
 }
 
 impl Model for BrowserState {
-    fn event(&mut self, _cx: &mut EventContext, event: &mut Event) {
+    fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|browser_event, _| match browser_event {
             // Temp: Load the assets directory for the treeview
             BrowserEvent::ViewAll => {
@@ -61,28 +66,63 @@ impl Model for BrowserState {
                 }
             }
 
-            BrowserEvent::ToggleOpen(path) => {
+            BrowserEvent::ToggleDirectory(path) => {
                 toggle_open(&mut self.libraries[0], path);
             }
 
-            // Set the selected directory item by path
+            BrowserEvent::ExpandDirectory => {
+                if let Some(focused) = &self.focused {
+                    println!("focused: {:?}", focused);
+                    set_expand_directory(&mut self.libraries[0], focused, true);
+                }
+            }
+
+            BrowserEvent::CollapseDirectory => {
+                if let Some(focused) = &self.focused {
+                    if is_collapsed(&mut self.libraries[0], focused) {
+                        self.focused = focused.parent().map(|p| p.to_owned());
+                    } else {
+                        set_expand_directory(&mut self.libraries[0], focused, false);
+                    }
+                    // println!("collapse");
+                    // if !set_expand_directory(&mut self.libraries[0], focused, false) {
+                    //     println!("do this");
+                    // }
+                }
+            }
+
             BrowserEvent::SetSelected(path) => {
                 self.selected = Some(path.clone());
             }
 
-            // Move selection the next directory item
-            BrowserEvent::SelectNext => {
-                let next = recursive_next(&self.libraries[0], None, self.selected.clone());
-                if let RetItem::Found(path) = next {
-                    self.selected = path;
+            // Set the selected directory item by path
+            BrowserEvent::SetFocused(path) => {
+                self.focused = path.clone();
+            }
+
+            // Move focus the next directory item
+            BrowserEvent::FocusNext => {
+                if let Some(focused) = &self.focused {
+                    let next = recursive_next(&self.libraries[0], None, focused);
+                    if let RetItem::Found(path) = next {
+                        self.focused = Some(path);
+
+                        // cx.emit_custom(
+                        //     Event::new(WindowEvent::KeyDown(Code::Tab, None))
+                        //         .origin(Entity::root())
+                        //         .target(Entity::root()),
+                        // );
+                    }
                 }
             }
 
             // Move selection the previous directory item
-            BrowserEvent::SelectPrev => {
-                let next = recursive_prev(&self.libraries[0], None, self.selected.clone());
-                if let RetItem::Found(path) = next {
-                    self.selected = path;
+            BrowserEvent::FocusPrev => {
+                if let Some(focused) = &self.focused {
+                    let next = recursive_prev(&self.libraries[0], None, focused);
+                    if let RetItem::Found(path) = next {
+                        self.focused = Some(path);
+                    }
                 }
             }
 
@@ -93,12 +133,12 @@ impl Model for BrowserState {
 
 #[derive(Debug, Clone)]
 enum RetItem<'a> {
-    Found(Option<PathBuf>),
+    Found(PathBuf),
     NotFound(Option<&'a Directory>),
 }
 
 fn toggle_open(root: &mut Directory, path: &PathBuf) {
-    if root.path == Some(path.clone()) {
+    if root.path == *path {
         root.is_open ^= true;
     } else {
         for child in root.children.iter_mut() {
@@ -107,14 +147,24 @@ fn toggle_open(root: &mut Directory, path: &PathBuf) {
     }
 }
 
+fn set_expand_directory(root: &mut Directory, path: &PathBuf, expand: bool) {
+    if root.path == *path {
+        root.is_open = expand;
+    } else {
+        for child in root.children.iter_mut() {
+            set_expand_directory(child, path, expand);
+        }
+    }
+}
+
 // Returns the next directory item after `dir` by recursing down the hierarchy
 fn recursive_next<'a>(
     root: &'a Directory,
     mut prev: Option<&'a Directory>,
-    dir: Option<PathBuf>,
+    dir: &PathBuf,
 ) -> RetItem<'a> {
     if let Some(prev) = prev {
-        if prev.path == dir {
+        if prev.path == *dir {
             return RetItem::Found(root.path.clone());
         }
     }
@@ -122,7 +172,7 @@ fn recursive_next<'a>(
     prev = Some(root);
     if root.is_open {
         for child in root.children.iter() {
-            let next = recursive_next(child, prev, dir.clone());
+            let next = recursive_next(child, prev, dir);
             match next {
                 RetItem::Found(_) => return next,
                 RetItem::NotFound(file) => prev = file,
@@ -137,9 +187,9 @@ fn recursive_next<'a>(
 fn recursive_prev<'a>(
     root: &'a Directory,
     mut prev: Option<&'a Directory>,
-    dir: Option<PathBuf>,
+    dir: &PathBuf,
 ) -> RetItem<'a> {
-    if root.path == dir {
+    if root.path == *dir {
         if let Some(prev) = prev {
             return RetItem::Found(prev.path.clone());
         }
@@ -148,7 +198,7 @@ fn recursive_prev<'a>(
     prev = Some(root);
     if root.is_open {
         for child in root.children.iter() {
-            let next = recursive_prev(child, prev, dir.clone());
+            let next = recursive_prev(child, prev, dir);
             match next {
                 RetItem::Found(_) => return next,
                 RetItem::NotFound(file) => prev = file,
@@ -157,6 +207,38 @@ fn recursive_prev<'a>(
     }
 
     RetItem::NotFound(prev)
+}
+
+fn is_collapsed<'a>(root: &'a Directory, dir: &PathBuf) -> bool {
+    let mut flag = false;
+    if root.path == *dir {
+        if !root.is_open {
+            return true;
+        }
+    } else {
+        for child in root.children.iter() {
+            if is_collapsed(child, dir) {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+fn has_subdirectories(dir: &Path) -> bool {
+    println!("has sub");
+    if let Ok(dir) = std::fs::read_dir(dir) {
+        for entry in dir {
+            if let Ok(sub) = entry {
+                if sub.path().is_dir() {
+                    return true;
+                }
+            }
+        }
+    }
+
+    false
 }
 
 // Recursively build directory tree from root path
@@ -184,11 +266,13 @@ fn visit_dirs(dir: &Path, num_files: &mut usize) -> Option<Directory> {
     // Sort by alphabetical (should this be a setting?)
     children.sort_by(|a, b| a.name.cmp(&b.name));
 
+    let has_children = !children.is_empty();
+
     Some(Directory {
         name,
-        path: Some(PathBuf::from(dir)),
+        path: PathBuf::from(dir),
         children,
-        is_open: true,
+        is_open: has_children,
         num_files: file_count,
     })
 }
