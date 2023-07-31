@@ -141,12 +141,17 @@ where
     Binding::new(cx, root.then(Directory::path), move |cx, file_path| {
         let file_path = file_path.get(cx);
         let file_path2 = file_path.clone();
+        let file_path3 = file_path.clone();
 
         let selected_lens = AppData::browser
             .then(BrowserState::selected)
             .map(move |selected| selected.contains(&file_path));
 
-        DirectoryItem::new(cx, root, selected_lens, file_path2)
+        let focused_lens = AppData::browser
+            .then(BrowserState::focused)
+            .map(move |focused| focused == &Some(file_path2.clone()));
+
+        DirectoryItem::new(cx, root, selected_lens, focused_lens, file_path3)
             .child_left(Pixels(10.0 * level as f32 + 4.0));
     });
 }
@@ -160,6 +165,7 @@ impl DirectoryItem {
         cx: &mut Context,
         root: impl Lens<Target = Directory>,
         selected: impl Lens<Target = bool>,
+        focused: impl Lens<Target = bool>,
         path: PathBuf,
     ) -> Handle<Self> {
         let file_path2 = path.clone();
@@ -207,6 +213,7 @@ impl DirectoryItem {
                     .class("dir-num");
             })
             .navigable(true)
+            .focused(focused)
             .class("dir-item")
             .layout_type(LayoutType::Row)
             .toggle_class("selected", selected)
@@ -225,19 +232,14 @@ impl View for DirectoryItem {
 
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|window_event, _| match window_event {
-            // WindowEvent::KeyDown(code, _) => match code {
-            //     Code::ArrowLeft => cx.emit(BrowserEvent::CollapseDirectory),
-            //     Code::ArrowRight => cx.emit(BrowserEvent::ExpandDirectory),
-            //     Code::ArrowDown => {
-            //         cx.emit(BrowserEvent::FocusNext);
-            //     }
-            //     Code::ArrowUp => cx.emit(BrowserEvent::FocusPrev),
-            //     _ => {}
-            // },
+            WindowEvent::KeyDown(code, _) => match code {
+                Code::Escape => cx.emit(BrowserEvent::Deselect),
+                _ => {}
+            },
             WindowEvent::Press { mouse: _ } => {
                 // if *mouse {
                 cx.emit(BrowserEvent::SetFocused(Some(self.path.clone())));
-                cx.focus();
+                // cx.focus();
                 if cx.modifiers().contains(Modifiers::CTRL) {
                     cx.emit(BrowserEvent::AddSelection(self.path.clone()));
                 } else {
@@ -248,7 +250,6 @@ impl View for DirectoryItem {
             WindowEvent::FocusIn => {
                 cx.emit(BrowserEvent::SetFocused(Some(self.path.clone())));
             }
-
             _ => {}
         });
     }
@@ -278,11 +279,11 @@ fn treeview<L>(
                     .height(Auto);
 
                     // Element::new(cx)
-                    //     .left(Pixels(10.0 * (level + 1) as f32))
+                    //     .left(Pixels(10.0 * (level + 1) as f32 + 4.0))
                     //     .height(Stretch(1.0))
                     //     .width(Pixels(1.0))
                     //     .position_type(PositionType::SelfDirected)
-                    //     .display(lens.then(File::is_open))
+                    //     .display(lens.then(Directory::is_open))
                     //     .class("dir-line");
                     // .toggle_class(
                     //     "focused",

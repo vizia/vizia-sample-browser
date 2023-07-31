@@ -16,6 +16,7 @@ pub struct BrowserState {
 pub enum BrowserEvent {
     ViewAll,
     Select(PathBuf),
+    Deselect,
     AddSelection(PathBuf),
     SetFocused(Option<PathBuf>),
     #[allow(dead_code)]
@@ -44,13 +45,13 @@ impl Default for BrowserState {
         Self {
             libraries: vec![Directory {
                 name: String::from("root"),
-                path: PathBuf::from("test_files/Drum Sounds"),
+                path: PathBuf::from("the-libre-sample-pack"),
                 children: vec![],
                 is_open: false,
                 num_files: 0,
             }],
             selected: HashSet::new(),
-            focused: Some(PathBuf::from("test_files/Drum Sounds")),
+            focused: Some(PathBuf::from("the-libre-sample-pack")),
         }
     }
 }
@@ -60,7 +61,7 @@ impl Model for BrowserState {
         event.map(|browser_event, _| match browser_event {
             // Temp: Load the assets directory for the treeview
             BrowserEvent::ViewAll => {
-                if let Some(root) = visit_dirs(Path::new("test_files"), &mut 0) {
+                if let Some(root) = visit_dirs(Path::new("the-libre-sample-pack"), &mut 0) {
                     self.libraries[0] = root;
                 }
             }
@@ -94,6 +95,10 @@ impl Model for BrowserState {
                 self.selected.insert(path.clone());
             }
 
+            BrowserEvent::Deselect => {
+                self.selected.clear();
+            }
+
             // Set the selected directory item by path
             BrowserEvent::SetFocused(path) => {
                 self.focused = path.clone();
@@ -106,11 +111,7 @@ impl Model for BrowserState {
                     if let RetItem::Found(path) = next {
                         self.focused = Some(path);
 
-                        // cx.emit_custom(
-                        //     Event::new(WindowEvent::KeyDown(Code::Tab, None))
-                        //         .origin(Entity::root())
-                        //         .target(Entity::root()),
-                        // );
+                        cx.focus_next();
                     }
                 }
             }
@@ -121,6 +122,8 @@ impl Model for BrowserState {
                     let next = recursive_prev(&self.libraries[0], None, focused);
                     if let RetItem::Found(path) = next {
                         self.focused = Some(path);
+
+                        cx.focus_prev();
                     }
                 }
             }
