@@ -19,3 +19,4 @@ Cargo.lock
 /target
 .ignore/
 .ignore**
+/the-libre-sample-pack

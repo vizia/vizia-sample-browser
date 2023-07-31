@@ -159,15 +159,14 @@ directory-item.selected {
     background-color: #336bcc2f;
 }
 
-directory-item:focus {
+directory-item:focus-visible {
     outline: 1px #336bcc;
     outline-offset: -1px;
 }
 
 directory-item .dir-num {
     color: #8c8c8c;
-    width: 20px;
-    child-left: 1s;
+    width: auto;
 }
 
 directory-item .dir-arrow {
