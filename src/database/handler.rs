@@ -298,6 +298,31 @@ impl Database {
 
         Ok(audio_files.map(|v| v.unwrap()).collect())
     }
+
+    pub fn get_child_audio_files(
+        &self,
+        parent: CollectionID,
+    ) -> Result<Vec<AudioFile>, DatabaseHandleError> {
+        self.check_connection()?;
+
+        let mut query = self.connection().unwrap().prepare(
+            "SELECT id, name, collection, duration, sample_rate, bit_depth, bpm, key, size FROM audio_files WHERE collection = (?1)",
+        )?;
+        let collections = query.query_map([parent], |row| {
+            Ok(AudioFile {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                collection: row.get(2)?,
+                duration: row.get(3)?,
+                sample_rate: row.get(4)?,
+                bit_depth: row.get(5)?,
+                bpm: row.get(6)?,
+                key: row.get(7)?,
+                size: row.get(8)?,
+            })
+        })?;
+        Ok(collections.map(|v| v.unwrap()).collect())
+    }
 }
 
 fn recursive_directory_closure<F>(
