@@ -5,7 +5,7 @@ pub use handler::*;
 
 mod tests;
 
-pub type CollectionID = i32;
+pub type CollectionID = usize;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Collection {
     id: CollectionID,
@@ -13,10 +13,11 @@ pub struct Collection {
     name: String,
 }
 
-pub type AudioFileID = i32;
+pub type AudioFileID = usize;
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AudioFiles {
+pub struct AudioFile {
     id: AudioFileID,
+    name: String,
     collection: CollectionID,
     duration: f32,
     sample_rate: f32,
@@ -33,7 +34,7 @@ pub struct Tag {
     color: f32,
 }
 
-struct AudioFilesTags {
+struct AudioFilesTag {
     audio_file: AudioFileID,
     tag: TagID,
 }

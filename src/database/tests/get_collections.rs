@@ -1,9 +1,9 @@
 #[test]
 pub fn get_all_collections() {
-    use crate::database::{Collection, DatabaseHandle};
+    use crate::database::{Collection, Database};
     use rusqlite::Connection;
 
-    let handle = DatabaseHandle::from_connection("", Some(Connection::open_in_memory().unwrap()));
+    let handle = Database::from_connection("", Some(Connection::open_in_memory().unwrap()));
     handle.connection().unwrap().execute_batch(include_str!("../schema.sql")).unwrap();
     handle.connection().unwrap().execute_batch(include_str!("test.sql")).unwrap();
 
@@ -21,10 +21,10 @@ pub fn get_all_collections() {
 
 #[test]
 pub fn get_root_collection() {
-    use crate::database::{Collection, DatabaseHandle};
+    use crate::database::{Collection, Database};
     use rusqlite::Connection;
 
-    let handle = DatabaseHandle::from_connection("", Some(Connection::open_in_memory().unwrap()));
+    let handle = Database::from_connection("", Some(Connection::open_in_memory().unwrap()));
     handle.connection().unwrap().execute_batch(include_str!("../schema.sql")).unwrap();
     handle.connection().unwrap().execute_batch(include_str!("test.sql")).unwrap();
 
@@ -36,10 +36,10 @@ pub fn get_root_collection() {
 
 #[test]
 pub fn get_child_collections() {
-    use crate::database::{Collection, DatabaseHandle};
+    use crate::database::{Collection, Database};
     use rusqlite::Connection;
 
-    let handle = DatabaseHandle::from_connection("", Some(Connection::open_in_memory().unwrap()));
+    let handle = Database::from_connection("", Some(Connection::open_in_memory().unwrap()));
     handle.connection().unwrap().execute_batch(include_str!("../schema.sql")).unwrap();
     handle.connection().unwrap().execute_batch(include_str!("test.sql")).unwrap();
 

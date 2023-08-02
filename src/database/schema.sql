@@ -1,13 +1,14 @@
-CREATE TABLE collection (
+CREATE TABLE collections (
     id                  integer UNIQUE PRIMARY KEY,
     parent_collection   integer NULL,
     name                nvarchar(255),
 
-    FOREIGN KEY(parent_collection) REFERENCES collection(id)
+    FOREIGN KEY(parent_collection) REFERENCES collections(id)
 );
 
 CREATE TABLE audio_files (
     id                  integer UNIQUE PRIMARY KEY,
+    name                nvarchar(255),
     collection          integer,
     duration            integer,
     sample_rate         integer,
@@ -16,7 +17,7 @@ CREATE TABLE audio_files (
     key                 integer NULL,
     size                integer,
 
-    FOREIGN KEY(collection) REFERENCES collection(name)
+    FOREIGN KEY(collection) REFERENCES collections(id)
 );
 
 CREATE TABLE tags (

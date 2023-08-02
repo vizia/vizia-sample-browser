@@ -1,10 +1,10 @@
 #[test]
 fn test() {
-    use crate::database::{Collection, DatabaseHandle};
+    use crate::database::{Collection, Database};
     use rand::Rng;
     use rusqlite::Connection;
 
-    let handle = DatabaseHandle::from_connection("", Some(Connection::open_in_memory().unwrap()));
+    let handle = Database::from_connection("", Some(Connection::open_in_memory().unwrap()));
     handle.connection().unwrap().execute_batch(include_str!("../schema.sql")).unwrap();
     // Insert dummy data
     let mut rand_thread = rand::thread_rng();
