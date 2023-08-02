@@ -38,3 +38,21 @@ struct AudioFilesTag {
     audio_file: AudioFileID,
     tag: TagID,
 }
+
+impl From<Collection> for usize {
+    fn from(value: Collection) -> Self {
+        value.id
+    }
+}
+
+impl From<AudioFile> for usize {
+    fn from(value: AudioFile) -> Self {
+        value.id
+    }
+}
+
+impl From<Tag> for String {
+    fn from(value: Tag) -> Self {
+        value.id
+    }
+}
