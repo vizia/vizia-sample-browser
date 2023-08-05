@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use vizia::icons::{
-    ICON_CHEVRON_DOWN, ICON_FOLDER, ICON_FOLDER_FILLED, ICON_FOLDER_OPEN, ICON_LIST,
+    ICON_CHEVRON_DOWN, ICON_FILTER, ICON_FOLDER, ICON_FOLDER_FILLED, ICON_FOLDER_OPEN, ICON_LIST,
     ICON_LIST_TREE, ICON_SEARCH,
 };
 use vizia::prelude::*;
@@ -14,14 +14,13 @@ use crate::views::{ToggleButton, ToggleButtonModifiers};
 
 #[derive(Lens)]
 pub struct Browser {
-    search_text: String,
     search_shown: bool,
     tree_view: bool,
 }
 
 impl Browser {
     pub fn new(cx: &mut Context) -> Handle<Self> {
-        Self { search_text: String::new(), search_shown: true, tree_view: true }.build(cx, |cx| {
+        Self { search_shown: true, tree_view: true }.build(cx, |cx| {
             cx.emit(BrowserEvent::ViewAll);
 
             // Panel Header
@@ -56,7 +55,8 @@ impl Browser {
 
             // Search Box
             HStack::new(cx, |cx| {
-                Textbox::new(cx, Browser::search_text)
+                Textbox::new(cx, AppData::browser.then(BrowserState::search_text))
+                    .on_edit(|cx, text| cx.emit(BrowserEvent::Search(text.clone())))
                     .width(Stretch(1.0))
                     .placeholder(Localized::new("search"))
                     .bind(Browser::search_shown, |mut handle, shown| {
@@ -65,6 +65,16 @@ impl Browser {
                         }
                     })
                     .class("search");
+
+                ToggleButton::new(cx, AppData::browser.then(BrowserState::filter_search), |cx| {
+                    Icon::new(cx, ICON_FILTER)
+                })
+                .on_toggle(|cx| cx.emit(BrowserEvent::ToggleSearchFilter))
+                .size(Pixels(20.0))
+                .position_type(PositionType::SelfDirected)
+                .space(Stretch(1.0))
+                .right(Pixels(4.0))
+                .class("filter-search");
                 // .on_edit(|cx, text| cx.emit(AppDataSetter::EditableText(text)));
             })
             .class("searchbar")
@@ -118,9 +128,7 @@ impl View for Browser {
             WindowEvent::KeyDown(code, _) => match code {
                 Code::ArrowLeft => cx.emit(BrowserEvent::CollapseDirectory),
                 Code::ArrowRight => cx.emit(BrowserEvent::ExpandDirectory),
-                Code::ArrowDown => {
-                    cx.emit(BrowserEvent::FocusNext);
-                }
+                Code::ArrowDown => cx.emit(BrowserEvent::FocusNext),
                 Code::ArrowUp => cx.emit(BrowserEvent::FocusPrev),
                 _ => {}
             },
@@ -168,7 +176,6 @@ impl DirectoryItem {
         focused: impl Lens<Target = bool>,
         path: PathBuf,
     ) -> Handle<Self> {
-        let file_path2 = path.clone();
         Self { path: path.clone() }
             .build(cx, |cx| {
                 // Arrow Icon
@@ -187,7 +194,8 @@ impl DirectoryItem {
                         cx.emit(BrowserEvent::ToggleDirectory(path.clone()));
                         cx.emit(BrowserEvent::SetFocused(Some(path.clone())));
                         cx.emit(BrowserEvent::Select(path.clone()));
-                    });
+                    })
+                    .cursor(CursorIcon::Hand);
 
                 // Folder Icon
                 Icon::new(
@@ -197,6 +205,7 @@ impl DirectoryItem {
                     ),
                 )
                 .class("dir-icon")
+                .cursor(CursorIcon::Hand)
                 .checked(selected);
 
                 // Directory name
@@ -204,7 +213,8 @@ impl DirectoryItem {
                     .width(Stretch(1.0))
                     .text_wrap(false)
                     .hoverable(false)
-                    .overflow(Overflow::Hidden);
+                    .overflow(Overflow::Hidden)
+                    .class("dir-name");
 
                 // Number of Files
                 Label::new(cx, root.then(Directory::num_files))
@@ -217,10 +227,19 @@ impl DirectoryItem {
             .class("dir-item")
             .layout_type(LayoutType::Row)
             .toggle_class("selected", selected)
-        // .on_press(move |cx| {
-        //     cx.focus();
-        //     cx.emit(BrowserEvent::SetFocused(Some(file_path2.clone())));
-        //     cx.emit(BrowserEvent::Select(file_path2.clone()));
+            .toggle_class(
+                "search-match",
+                root.then(Directory::match_indices).map(|idx| !idx.is_empty()),
+            )
+        // TODO
+        // .tooltip(|cx| {
+        //     Tooltip::new(cx, |cx| {
+        //         Label::new(
+        //             cx,
+        //             root.then(Directory::path)
+        //                 .map(|path| path.as_os_str().to_str().unwrap().to_owned()),
+        //         );
+        //     });
         // })
     }
 }
@@ -259,7 +278,7 @@ fn treeview<L>(
     cx: &mut Context,
     lens: L,
     level: u32,
-    header: impl Fn(&mut Context, L, u32),
+    header: impl Fn(&mut Context, L, u32) + 'static,
     content: impl Fn(&mut Context, Index<Then<L, Wrapper<children>>, Directory>, u32) + 'static,
 ) where
     L: Lens<Target = Directory>,
@@ -267,44 +286,49 @@ fn treeview<L>(
 {
     let content = Rc::new(content);
     VStack::new(cx, |cx| {
-        (header)(cx, lens, level);
-        Binding::new(cx, lens.then(Directory::is_open), move |cx, is_open| {
-            if is_open.get(cx) {
-                let content1 = content.clone();
-                VStack::new(cx, |cx| {
-                    List::new(cx, lens.then(Directory::children), move |cx, _, item| {
-                        (content1)(cx, item, level + 1);
-                    })
-                    .width(Stretch(1.0))
-                    .height(Auto);
+        Binding::new(cx, lens.then(Directory::shown), move |cx, shown| {
+            if shown.get(cx) {
+                (header)(cx, lens, level);
+                let content = content.clone();
+                Binding::new(cx, lens.then(Directory::is_open), move |cx, is_open| {
+                    if is_open.get(cx) {
+                        let content1 = content.clone();
+                        VStack::new(cx, |cx| {
+                            List::new(cx, lens.then(Directory::children), move |cx, _, item| {
+                                (content1)(cx, item, level + 1);
+                            })
+                            .width(Stretch(1.0))
+                            .height(Auto);
 
-                    // Element::new(cx)
-                    //     .left(Pixels(10.0 * (level + 1) as f32 + 4.0))
-                    //     .height(Stretch(1.0))
-                    //     .width(Pixels(1.0))
-                    //     .position_type(PositionType::SelfDirected)
-                    //     .display(lens.then(Directory::is_open))
-                    //     .class("dir-line");
-                    // .toggle_class(
-                    //     "focused",
-                    //     AppData::browser.then(BrowserState::selected).map(move |selected| {
-                    //         if let Some(path) = &file_path1 {
-                    //             if let Some(selected) = selected {
-                    //                 if let Some(dir) = dir_path(selected) {
-                    //                     dir == path
-                    //                 } else {
-                    //                     false
-                    //                 }
-                    //             } else {
-                    //                 false
-                    //             }
-                    //         } else {
-                    //             false
-                    //         }
-                    //     }),
-                    // );
-                })
-                .height(Auto);
+                            // Element::new(cx)
+                            //     .left(Pixels(10.0 * (level + 1) as f32 + 4.0))
+                            //     .height(Stretch(1.0))
+                            //     .width(Pixels(1.0))
+                            //     .position_type(PositionType::SelfDirected)
+                            //     .display(lens.then(Directory::is_open))
+                            //     .class("dir-line");
+                            // .toggle_class(
+                            //     "focused",
+                            //     AppData::browser.then(BrowserState::selected).map(move |selected| {
+                            //         if let Some(path) = &file_path1 {
+                            //             if let Some(selected) = selected {
+                            //                 if let Some(dir) = dir_path(selected) {
+                            //                     dir == path
+                            //                 } else {
+                            //                     false
+                            //                 }
+                            //             } else {
+                            //                 false
+                            //             }
+                            //         } else {
+                            //             false
+                            //         }
+                            //     }),
+                            // );
+                        })
+                        .height(Auto);
+                    }
+                });
             }
         });
     })
