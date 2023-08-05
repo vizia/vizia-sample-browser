@@ -1,3 +1,5 @@
+#![allow(unused)] // Disable stupid warnings for now
+
 use app_data::AppData;
 use rusqlite::Connection;
 use views::smart_table::SmartTable;
