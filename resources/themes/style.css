@@ -2,9 +2,9 @@
     border: 1px red;
 } */
 
-* {
+/* * {
     color: #fff;
-}
+} */
 
 :root {
     background-color: #181818;
@@ -89,19 +89,29 @@ textbox.search .placeholder {
 }
 
 toggle-button {
-    background-color: #484848;
+    background-color: transparent;
+    color: #8c8c8c;
     size: 28px;
     border-radius: 4px;
 }
 
 toggle-button:checked {
     background-color: #336bcc;
+    color: white;
 }
 
 toggle-button:focus-visible {
     outline: #336bcc;
     outline-offset: 3px;
     outline-width: 1px;
+}
+
+toggle-button.filter-search {
+    color: #8c8c8c;
+}
+
+toggle-button.filter-search:checked {
+    color: white;
 }
 
 icon {
@@ -178,6 +188,10 @@ directory-item .dir-icon {
 }
 
 directory-item .dir-icon:checked {
+    color: #90b7f9;
+}
+
+directory-item.search-match .dir-name {
     color: #90b7f9;
 }
 

@@ -3,6 +3,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use fuzzy_matcher::skim::SkimMatcherV2;
+use fuzzy_matcher::FuzzyMatcher;
+
 use vizia::prelude::*;
 
 #[derive(Debug, Lens, Clone, Data)]
@@ -10,11 +13,14 @@ pub struct BrowserState {
     pub libraries: Vec<Directory>,
     pub selected: HashSet<PathBuf>,
     pub focused: Option<PathBuf>,
+    pub search_text: String,
+    pub filter_search: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum BrowserEvent {
     ViewAll,
+    Search(String),
     Select(PathBuf),
     Deselect,
     AddSelection(PathBuf),
@@ -27,6 +33,7 @@ pub enum BrowserEvent {
     ExpandDirectory,
     CollapseDirectory,
     ToggleShowSearch,
+    ToggleSearchFilter,
     ShowTree,
     ShowList,
 }
@@ -38,6 +45,8 @@ pub struct Directory {
     pub children: Vec<Directory>,
     pub is_open: bool,
     pub num_files: usize,
+    pub match_indices: Vec<usize>,
+    pub shown: bool,
 }
 
 impl Default for BrowserState {
@@ -49,9 +58,13 @@ impl Default for BrowserState {
                 children: vec![],
                 is_open: false,
                 num_files: 0,
+                match_indices: Vec::default(),
+                shown: true,
             }],
             selected: HashSet::new(),
-            focused: Some(PathBuf::from("the-libre-sample-pack")),
+            focused: None,
+            search_text: String::new(),
+            filter_search: false,
         }
     }
 }
@@ -63,6 +76,19 @@ impl Model for BrowserState {
             BrowserEvent::ViewAll => {
                 if let Some(root) = visit_dirs(Path::new("the-libre-sample-pack"), &mut 0) {
                     self.libraries[0] = root;
+                }
+            }
+
+            BrowserEvent::Search(search_text) => {
+                self.focused = None;
+                self.search_text = search_text.clone();
+                search(&mut self.libraries[0], &self.search_text, self.filter_search);
+            }
+
+            BrowserEvent::ToggleSearchFilter => {
+                self.filter_search ^= true;
+                if !self.search_text.is_empty() {
+                    search(&mut self.libraries[0], &self.search_text, self.filter_search);
                 }
             }
 
@@ -110,7 +136,6 @@ impl Model for BrowserState {
                     let next = recursive_next(&self.libraries[0], None, focused);
                     if let RetItem::Found(path) = next {
                         self.focused = Some(path);
-
                         cx.focus_next();
                     }
                 }
@@ -122,7 +147,6 @@ impl Model for BrowserState {
                     let next = recursive_prev(&self.libraries[0], None, focused);
                     if let RetItem::Found(path) = next {
                         self.focused = Some(path);
-
                         cx.focus_prev();
                     }
                 }
@@ -211,8 +235,27 @@ fn recursive_prev<'a>(
     RetItem::NotFound(prev)
 }
 
+fn search<'a>(root: &'a mut Directory, search_text: &String, filter: bool) -> bool {
+    let mut parent_is_shown = !filter;
+    let matcher = SkimMatcherV2::default();
+    if let Some((_, indices)) = matcher.fuzzy_indices(&root.name, search_text) {
+        root.match_indices = indices;
+        parent_is_shown = true;
+    } else {
+        root.match_indices.clear();
+    }
+
+    let mut child_is_shown = false;
+    for child in root.children.iter_mut() {
+        child_is_shown |= search(child, search_text, filter);
+    }
+
+    root.shown = parent_is_shown | child_is_shown;
+
+    return root.shown;
+}
+
 fn is_collapsed<'a>(root: &'a Directory, dir: &PathBuf) -> bool {
-    let mut flag = false;
     if root.path == *dir {
         if !root.is_open {
             return true;
@@ -221,21 +264,6 @@ fn is_collapsed<'a>(root: &'a Directory, dir: &PathBuf) -> bool {
         for child in root.children.iter() {
             if is_collapsed(child, dir) {
                 return true;
-            }
-        }
-    }
-
-    false
-}
-
-fn has_subdirectories(dir: &Path) -> bool {
-    println!("has sub");
-    if let Ok(dir) = std::fs::read_dir(dir) {
-        for entry in dir {
-            if let Ok(sub) = entry {
-                if sub.path().is_dir() {
-                    return true;
-                }
             }
         }
     }
@@ -276,5 +304,7 @@ fn visit_dirs(dir: &Path, num_files: &mut usize) -> Option<Directory> {
         children,
         is_open: has_children,
         num_files: file_count,
+        match_indices: Vec::default(),
+        shown: true,
     })
 }

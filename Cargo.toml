@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 vizia = {git = "https://github.com/vizia/vizia", branch = "focus"}
 # vizia = {path = "../vizia"}
+fuzzy-matcher = "0.3.7"
 
 [profile.dev.package."*"]
 opt-level = 3
