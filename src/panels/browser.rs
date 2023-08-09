@@ -2,8 +2,8 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use vizia::icons::{
-    ICON_CHEVRON_DOWN, ICON_FILTER, ICON_FOLDER, ICON_FOLDER_FILLED, ICON_FOLDER_OPEN, ICON_LIST,
-    ICON_LIST_TREE, ICON_SEARCH,
+    ICON_CHEVRON_DOWN, ICON_FILTER, ICON_FOLDER, ICON_FOLDER_FILLED, ICON_FOLDER_OPEN,
+    ICON_LETTER_CASE, ICON_LIST, ICON_LIST_TREE, ICON_SEARCH,
 };
 use vizia::prelude::*;
 
@@ -22,6 +22,12 @@ impl Browser {
     pub fn new(cx: &mut Context) -> Handle<Self> {
         Self { search_shown: true, tree_view: true }.build(cx, |cx| {
             cx.emit(BrowserEvent::ViewAll);
+
+            Keymap::from(vec![(
+                KeyChord::new(Modifiers::CTRL, Code::KeyF),
+                KeymapEntry::new((), |cx| cx.emit(BrowserEvent::ToggleShowSearch)),
+            )])
+            .build(cx);
 
             // Panel Header
             HStack::new(cx, |cx| {
@@ -66,15 +72,36 @@ impl Browser {
                     })
                     .class("search");
 
-                ToggleButton::new(cx, AppData::browser.then(BrowserState::filter_search), |cx| {
-                    Icon::new(cx, ICON_FILTER)
+                HStack::new(cx, |cx| {
+                    ToggleButton::new(
+                        cx,
+                        AppData::browser.then(BrowserState::search_case_sensitive),
+                        |cx| Icon::new(cx, ICON_LETTER_CASE),
+                    )
+                    .on_toggle(|cx| cx.emit(BrowserEvent::ToggleSearchCaseSensitivity))
+                    .size(Pixels(20.0))
+                    .class("filter-search")
+                    .tooltip(|cx| {
+                        Label::new(cx, Localized::new("match-case"));
+                    });
+
+                    ToggleButton::new(
+                        cx,
+                        AppData::browser.then(BrowserState::filter_search),
+                        |cx| Icon::new(cx, ICON_FILTER),
+                    )
+                    .on_toggle(|cx| cx.emit(BrowserEvent::ToggleSearchFilter))
+                    .size(Pixels(20.0))
+                    .class("filter-search")
+                    .tooltip(|cx| {
+                        Label::new(cx, Localized::new("filter"));
+                    });
                 })
-                .on_toggle(|cx| cx.emit(BrowserEvent::ToggleSearchFilter))
-                .size(Pixels(20.0))
                 .position_type(PositionType::SelfDirected)
                 .space(Stretch(1.0))
                 .right(Pixels(4.0))
-                .class("filter-search");
+                .col_between(Pixels(2.0))
+                .size(Auto);
                 // .on_edit(|cx, text| cx.emit(AppDataSetter::EditableText(text)));
             })
             .class("searchbar")

@@ -15,6 +15,7 @@ pub struct BrowserState {
     pub focused: Option<PathBuf>,
     pub search_text: String,
     pub filter_search: bool,
+    pub search_case_sensitive: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -34,6 +35,7 @@ pub enum BrowserEvent {
     CollapseDirectory,
     ToggleShowSearch,
     ToggleSearchFilter,
+    ToggleSearchCaseSensitivity,
     ShowTree,
     ShowList,
 }
@@ -65,6 +67,7 @@ impl Default for BrowserState {
             focused: None,
             search_text: String::new(),
             filter_search: false,
+            search_case_sensitive: false,
         }
     }
 }
@@ -82,13 +85,35 @@ impl Model for BrowserState {
             BrowserEvent::Search(search_text) => {
                 self.focused = None;
                 self.search_text = search_text.clone();
-                search(&mut self.libraries[0], &self.search_text, self.filter_search);
+                search(
+                    &mut self.libraries[0],
+                    &self.search_text,
+                    self.filter_search,
+                    !self.search_case_sensitive,
+                );
             }
 
             BrowserEvent::ToggleSearchFilter => {
                 self.filter_search ^= true;
                 if !self.search_text.is_empty() {
-                    search(&mut self.libraries[0], &self.search_text, self.filter_search);
+                    search(
+                        &mut self.libraries[0],
+                        &self.search_text,
+                        self.filter_search,
+                        !self.search_case_sensitive,
+                    );
+                }
+            }
+
+            BrowserEvent::ToggleSearchCaseSensitivity => {
+                self.search_case_sensitive ^= true;
+                if !self.search_text.is_empty() {
+                    search(
+                        &mut self.libraries[0],
+                        &self.search_text,
+                        self.filter_search,
+                        !self.search_case_sensitive,
+                    );
                 }
             }
 
@@ -134,8 +159,8 @@ impl Model for BrowserState {
             BrowserEvent::FocusNext => {
                 if let Some(focused) = &self.focused {
                     let next = recursive_next(&self.libraries[0], None, focused);
-                    if let RetItem::Found(path) = next {
-                        self.focused = Some(path);
+                    if let RetItem::Found(next_dir) = next {
+                        self.focused = Some(next_dir.path.clone());
                         cx.focus_next();
                     }
                 }
@@ -144,9 +169,9 @@ impl Model for BrowserState {
             // Move selection the previous directory item
             BrowserEvent::FocusPrev => {
                 if let Some(focused) = &self.focused {
-                    let next = recursive_prev(&self.libraries[0], None, focused);
-                    if let RetItem::Found(path) = next {
-                        self.focused = Some(path);
+                    let prev = recursive_prev(&self.libraries[0], None, focused);
+                    if let RetItem::Found(prev_dir) = prev {
+                        self.focused = Some(prev_dir.path.clone());
                         cx.focus_prev();
                     }
                 }
@@ -159,7 +184,7 @@ impl Model for BrowserState {
 
 #[derive(Debug, Clone)]
 enum RetItem<'a> {
-    Found(PathBuf),
+    Found(&'a Directory),
     NotFound(Option<&'a Directory>),
 }
 
@@ -191,7 +216,7 @@ fn recursive_next<'a>(
 ) -> RetItem<'a> {
     if let Some(prev) = prev {
         if prev.path == *dir {
-            return RetItem::Found(root.path.clone());
+            return RetItem::Found(root);
         }
     }
 
@@ -217,7 +242,7 @@ fn recursive_prev<'a>(
 ) -> RetItem<'a> {
     if root.path == *dir {
         if let Some(prev) = prev {
-            return RetItem::Found(prev.path.clone());
+            return RetItem::Found(prev);
         }
     }
 
@@ -235,9 +260,21 @@ fn recursive_prev<'a>(
     RetItem::NotFound(prev)
 }
 
-fn search<'a>(root: &'a mut Directory, search_text: &String, filter: bool) -> bool {
+fn search<'a>(
+    root: &'a mut Directory,
+    search_text: &String,
+    filter: bool,
+    ignore_case: bool,
+) -> bool {
     let mut parent_is_shown = !filter;
-    let matcher = SkimMatcherV2::default();
+    let mut matcher = SkimMatcherV2::default();
+
+    if ignore_case {
+        matcher = matcher.ignore_case()
+    } else {
+        matcher = matcher.respect_case()
+    }
+
     if let Some((_, indices)) = matcher.fuzzy_indices(&root.name, search_text) {
         root.match_indices = indices;
         parent_is_shown = true;
@@ -247,7 +284,7 @@ fn search<'a>(root: &'a mut Directory, search_text: &String, filter: bool) -> bo
 
     let mut child_is_shown = false;
     for child in root.children.iter_mut() {
-        child_is_shown |= search(child, search_text, filter);
+        child_is_shown |= search(child, search_text, filter, ignore_case);
     }
 
     root.shown = parent_is_shown | child_is_shown;

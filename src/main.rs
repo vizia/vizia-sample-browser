@@ -83,7 +83,9 @@ fn main() {
                     })
                     .class("panel");
                 },
-            );
+            )
+            .class("browser");
+
             VStack::new(cx, |cx| {
                 // Table View
                 ResizableStack::new(
@@ -101,7 +103,7 @@ fn main() {
                                         .class("icon-before")
                                         .width(Stretch(1.0))
                                         .class("search")
-                                        .placeholder("Search");
+                                        .placeholder(Localized::new("search"));
                                     // .on_edit(|cx, text| cx.emit(AppDataSetter::EditableText(text)));
                                     Icon::new(cx, ICON_SEARCH)
                                         .color(Color::gray())

@@ -47,6 +47,11 @@
     border-bottom-left-radius: 0px;
 }
 
+resizable-stack.browser {
+    min-width: 200px;
+    max-width: 500px;
+}
+
 browser {
     size: 1s;
     row-between: 8px;
@@ -93,6 +98,7 @@ toggle-button {
     color: #8c8c8c;
     size: 28px;
     border-radius: 4px;
+    cursor: hand;
 }
 
 toggle-button:checked {
@@ -176,7 +182,8 @@ directory-item:focus-visible {
 
 directory-item .dir-num {
     color: #8c8c8c;
-    width: auto;
+    width: 30px;
+    child-left: 1s;
 }
 
 directory-item .dir-arrow {
