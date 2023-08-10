@@ -74,14 +74,15 @@ fn main() {
         let mut db =
             Database::from_connection("test_files/", Some(Connection::open(".vsb").unwrap()));
 
+        let root = collections_to_directories(&mut db.get_all_collections().unwrap());
+
         AppData {
-            browser: BrowserState::default(),
+            browser: BrowserState::new(root),
             browser_width: 300.0,
             table_height: 300.0,
             table_headers: headers,
             table_rows: rows,
             search_text: String::new(),
-
             //
             database: Arc::new(Mutex::new(db)),
         }
@@ -125,4 +126,46 @@ fn main() {
     .title("Vizia Sample Browser")
     .inner_size((1400, 800))
     .run();
+}
+
+fn collections_to_directories(collections: &mut Vec<Collection>) -> Directory {
+    let mut hm: HashMap<CollectionID, Directory> = HashMap::new();
+
+    for coll in collections {
+        hm.insert(
+            coll.id(),
+            Directory {
+                id: coll.id(),
+                parent_id: coll.parent_collection(),
+                name: coll.name().to_string(),
+                path: coll.path().clone(),
+                is_open: false,
+                num_files: 0,
+                shown: true,
+                match_indices: Vec::new(),
+                children: Vec::new(),
+            },
+        );
+    }
+
+    fn children_of_collection(
+        map: &HashMap<CollectionID, Directory>,
+        coll: CollectionID,
+    ) -> VecDeque<CollectionID> {
+        map.values().filter(|v| v.parent_id == Some(coll)).map(|v| v.id).collect()
+    }
+
+    let mut root_dir = hm.values().find(|v| v.parent_id.is_none()).unwrap().clone();
+
+    let mut collection_stack: VecDeque<CollectionID> = children_of_collection(&hm, root_dir.id);
+
+    while let Some(coll) = collection_stack.pop_front() {
+        let mut children = children_of_collection(&hm, coll);
+        collection_stack.append(&mut children);
+
+        let coll_data = hm.get(&coll).unwrap().clone();
+        root_dir.children.push(coll_data);
+    }
+
+    root_dir
 }

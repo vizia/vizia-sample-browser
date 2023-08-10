@@ -1,4 +1,5 @@
-use crate::{app_data::AppData, database::prelude::*};
+use crate::app_data::AppData;
+use crate::database::prelude::*;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use std::{
@@ -6,6 +7,8 @@ use std::{
     path::{Path, PathBuf},
 };
 use vizia::prelude::*;
+
+use self::browser_state_derived_lenses::libraries;
 
 #[derive(Debug, Lens, Clone, Data)]
 pub struct BrowserState {
@@ -17,9 +20,14 @@ pub struct BrowserState {
     pub search_case_sensitive: bool,
 }
 
+impl BrowserState {
+    pub fn new(directory: Directory) -> Self {
+        Self { libraries: vec![directory], ..Default::default() }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum BrowserEvent {
-    ViewAll,
     Search(String),
     Select(PathBuf),
     Deselect,
@@ -39,7 +47,7 @@ pub enum BrowserEvent {
     ShowList,
 }
 
-#[derive(Debug, Clone, Data, Lens)]
+#[derive(Debug, Clone, Data, Lens, Default)]
 pub struct Directory {
     pub id: CollectionID,
     pub parent_id: Option<CollectionID>,
@@ -68,14 +76,6 @@ impl Default for BrowserState {
 impl Model for BrowserState {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|browser_event, _| match browser_event {
-            // Temp: Load the assets directory for the treeview
-            BrowserEvent::ViewAll => {
-                let db_ref = AppData::database.get(cx);
-                let db = db_ref.lock().unwrap();
-                let root = collections_to_directories(&mut db.get_all_collections().unwrap());
-                self.libraries[0] = root;
-            }
-
             BrowserEvent::Search(search_text) => {
                 self.focused = None;
                 self.search_text = search_text.clone();
@@ -300,46 +300,4 @@ fn is_collapsed<'a>(root: &'a Directory, dir: &PathBuf) -> bool {
     }
 
     false
-}
-
-fn collections_to_directories(collections: &mut Vec<Collection>) -> Directory {
-    let mut hm: HashMap<CollectionID, Directory> = HashMap::new();
-
-    for coll in collections {
-        hm.insert(
-            coll.id(),
-            Directory {
-                id: coll.id(),
-                parent_id: coll.parent_collection(),
-                name: coll.name().to_string(),
-                path: coll.path().clone(),
-                is_open: false,
-                num_files: 0,
-                shown: true,
-                match_indices: Vec::new(),
-                children: Vec::new(),
-            },
-        );
-    }
-
-    fn children_of_collection(
-        map: &HashMap<CollectionID, Directory>,
-        coll: CollectionID,
-    ) -> VecDeque<CollectionID> {
-        map.values().filter(|v| v.parent_id == Some(coll)).map(|v| v.id).collect()
-    }
-
-    let mut root_dir = hm.values().find(|v| v.parent_id.is_none()).unwrap().clone();
-
-    let mut collection_stack: VecDeque<CollectionID> = children_of_collection(&hm, root_dir.id);
-
-    while let Some(coll) = collection_stack.pop_front() {
-        let mut children = children_of_collection(&hm, coll);
-        collection_stack.append(&mut children);
-
-        let coll_data = hm.get(&coll).unwrap().clone();
-        root_dir.children.push(coll_data);
-    }
-
-    root_dir
 }
