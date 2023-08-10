@@ -21,8 +21,6 @@ pub struct BrowserPanel {
 impl BrowserPanel {
     pub fn new(cx: &mut Context) -> Handle<Self> {
         Self { search_shown: true, tree_view: true }.build(cx, |cx| {
-            cx.emit(BrowserEvent::ViewAll);
-
             Keymap::from(vec![(
                 KeyChord::new(Modifiers::CTRL, Code::KeyF),
                 KeymapEntry::new((), |cx| cx.emit(BrowserEvent::ToggleShowSearch)),
