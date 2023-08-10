@@ -39,8 +39,8 @@ impl Database {
 
         s.open_connection()?;
 
+        s.initialize_empty_database();
         // if !database_exists {
-        //     s.initialize_empty_database();
         // } else {
         //     s.update_database();
         // }
@@ -68,6 +68,10 @@ impl Database {
             let mut colls = collections.borrow_mut();
 
             let name = path.file_name().unwrap().to_str().unwrap().to_string();
+            if name == ".vsb-meta" {
+                return;
+            }
+
             let id = collection_count.load(std::sync::atomic::Ordering::Relaxed);
             collection_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             let parent_id = match parent_path.is_none() {
