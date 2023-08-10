@@ -13,12 +13,12 @@ use crate::state::browser::*;
 use crate::views::{ToggleButton, ToggleButtonModifiers};
 
 #[derive(Lens)]
-pub struct Browser {
+pub struct BrowserPanel {
     search_shown: bool,
     tree_view: bool,
 }
 
-impl Browser {
+impl BrowserPanel {
     pub fn new(cx: &mut Context) -> Handle<Self> {
         Self { search_shown: true, tree_view: true }.build(cx, |cx| {
             cx.emit(BrowserEvent::ViewAll);
@@ -29,7 +29,7 @@ impl Browser {
             )])
             .build(cx);
 
-            // Panel Header
+            // Header
             HStack::new(cx, |cx| {
                 // Panel Icon
                 Icon::new(cx, ICON_FOLDER_OPEN).class("panel-icon");
@@ -41,20 +41,20 @@ impl Browser {
                         |cx| cx.emit(BrowserEvent::ShowTree),
                         |cx| Icon::new(cx, ICON_LIST_TREE),
                     )
-                    .checked(Browser::tree_view);
+                    .checked(BrowserPanel::tree_view);
 
                     Button::new(
                         cx,
                         |cx| cx.emit(BrowserEvent::ShowList),
                         |cx| Icon::new(cx, ICON_LIST),
                     )
-                    .checked(Browser::tree_view.map(|flag| !flag));
+                    .checked(BrowserPanel::tree_view.map(|flag| !flag));
                 })
                 .class("button-group")
                 .width(Auto);
 
                 // Search Toggle Button
-                ToggleButton::new(cx, Browser::search_shown, |cx| Icon::new(cx, ICON_SEARCH))
+                ToggleButton::new(cx, BrowserPanel::search_shown, |cx| Icon::new(cx, ICON_SEARCH))
                     .on_toggle(|cx| cx.emit(BrowserEvent::ToggleShowSearch));
             })
             .class("header");
@@ -63,16 +63,18 @@ impl Browser {
             HStack::new(cx, |cx| {
                 Textbox::new(cx, AppData::browser.then(BrowserState::search_text))
                     .on_edit(|cx, text| cx.emit(BrowserEvent::Search(text.clone())))
-                    .width(Stretch(1.0))
                     .placeholder(Localized::new("search"))
-                    .bind(Browser::search_shown, |mut handle, shown| {
+                    .width(Stretch(1.0))
+                    .bind(BrowserPanel::search_shown, |mut handle, shown| {
                         if shown.get(&handle) {
                             handle.context().emit(TextEvent::StartEdit);
                         }
                     })
+                    // .navigable(BrowserPanel::search_shown)
                     .class("search");
 
                 HStack::new(cx, |cx| {
+                    // Match Case Toggle Button
                     ToggleButton::new(
                         cx,
                         AppData::browser.then(BrowserState::search_case_sensitive),
@@ -81,10 +83,12 @@ impl Browser {
                     .on_toggle(|cx| cx.emit(BrowserEvent::ToggleSearchCaseSensitivity))
                     .size(Pixels(20.0))
                     .class("filter-search")
+                    // .navigable(BrowserPanel::search_shown)
                     .tooltip(|cx| {
                         Label::new(cx, Localized::new("match-case"));
                     });
 
+                    // Filter Results Toggle Button
                     ToggleButton::new(
                         cx,
                         AppData::browser.then(BrowserState::filter_search),
@@ -93,6 +97,7 @@ impl Browser {
                     .on_toggle(|cx| cx.emit(BrowserEvent::ToggleSearchFilter))
                     .size(Pixels(20.0))
                     .class("filter-search")
+                    // .navigable(BrowserPanel::search_shown)
                     .tooltip(|cx| {
                         Label::new(cx, Localized::new("filter"));
                     });
@@ -102,14 +107,13 @@ impl Browser {
                 .right(Pixels(4.0))
                 .col_between(Pixels(2.0))
                 .size(Auto);
-                // .on_edit(|cx, text| cx.emit(AppDataSetter::EditableText(text)));
             })
             .class("searchbar")
-            .toggle_class("shown", Browser::search_shown)
+            .toggle_class("shown", BrowserPanel::search_shown)
             .col_between(Pixels(8.0))
             .height(Auto);
 
-            // Folder Treeview
+            // Folder TreeView
             ScrollView::new(cx, 0.0, 0.0, false, true, |cx| {
                 treeview(
                     cx,
@@ -128,7 +132,7 @@ impl Browser {
                 );
             });
 
-            // Panel Footer
+            // Footer
             HStack::new(cx, |cx| {
                 Label::new(cx, "550 samples in 34 folders");
             })
@@ -137,9 +141,9 @@ impl Browser {
     }
 }
 
-impl View for Browser {
+impl View for BrowserPanel {
     fn element(&self) -> Option<&'static str> {
-        Some("browser")
+        Some("browser-panel")
     }
 
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {

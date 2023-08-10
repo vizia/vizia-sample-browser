@@ -52,18 +52,18 @@ resizable-stack.browser {
     max-width: 500px;
 }
 
-browser {
+browser-panel {
     size: 1s;
     row-between: 8px;
 }
 
-browser > .header {
+browser-panel > .header {
     height: 28px;
     width: 1s;
     col-between: 1s;
 }
 
-browser > .footer {
+browser-panel > .footer {
     height: auto;
     width: 1s;
     child-left: 1s;
@@ -74,10 +74,13 @@ browser > .footer {
     max-height: 0px;
     transition: max-height 100ms;
     overflow: hidden;
+    display: none;
+    transition: display 1ms 100ms;
 }
 
 .searchbar.shown {
     max-height: 28px;
+    display: flex;
     transition: max-height 100ms;
 }
 
@@ -91,6 +94,16 @@ textbox.search:checked {
 
 textbox.search .placeholder {
     color: #a8a8a8;
+}
+
+textbox:checked {
+    border-color: #336bcc;
+}
+
+button:focus-visible {
+    outline: #336bcc;
+    outline-offset: 3px;
+    outline-width: 1px;
 }
 
 toggle-button {
@@ -244,6 +257,13 @@ directory-item.search-match .dir-name {
 } */
 
 .panel {
+    size: 1s;
+    background-color: #323232;
+    child-space: 8px;
+    row-between: 8px;
+}
+
+samples-panel {
     size: 1s;
     background-color: #323232;
     child-space: 8px;

@@ -1,7 +1,5 @@
 use vizia::prelude::*;
 
-use super::SmartTableEvent;
-
 #[derive(PartialEq, Clone, Copy)]
 pub enum ResizeStackDirection {
     Right,
@@ -84,7 +82,11 @@ impl View for ResizableStack {
                 cx.capture();
                 cx.lock_cursor_icon();
 
-                cx.emit(SmartTableEvent::StartDrag);
+                // Disable pointer events for everything while dragging
+                cx.with_current(Entity::root(), |cx| {
+                    cx.set_pointer_events(false);
+                });
+
                 // Prevent propagation in case the resizable stack is within another resizable stack
                 event.consume();
             }
@@ -94,7 +96,11 @@ impl View for ResizableStack {
                 cx.release();
                 cx.unlock_cursor_icon();
 
-                cx.emit(SmartTableEvent::StopDrag);
+                // Re-enable pointer events
+                cx.with_current(Entity::root(), |cx| {
+                    cx.set_pointer_events(true);
+                });
+
                 event.consume()
             }
         });
