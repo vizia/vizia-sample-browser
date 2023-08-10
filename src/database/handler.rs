@@ -1,9 +1,12 @@
+use crate::state::browser::Directory;
+
 use super::*;
+use itertools::Itertools;
 use rusqlite::Connection;
 use std::{
     any::Any,
     cell::RefCell,
-    collections::{BTreeSet, HashMap},
+    collections::{BTreeSet, HashMap, VecDeque},
     error::Error,
     fs::{create_dir, read_dir, DirEntry, File},
     path::{Path, PathBuf},
@@ -30,10 +33,10 @@ impl Database {
 
         // Open connection
         let mut s = Self { path, conn: None, meta: DatabaseMetadata::new() };
+        s.initialize_or_create_stores()?;
 
         // let database_exists = File::open(s.get_database_path()).is_ok();
 
-        s.initialize_or_create_stores();
         s.open_connection()?;
 
         // if !database_exists {
@@ -46,7 +49,7 @@ impl Database {
     }
 
     fn clear_database(&mut self) {
-        self.get_connection().unwrap().execute_batch(include_str!("./clear.sql")).unwrap();
+        self.get_connection().unwrap().execute_batch(include_str!("sqls/clear.sql")).unwrap();
     }
 
     fn initialize_empty_database(&mut self) {
@@ -114,6 +117,13 @@ impl Database {
     }
 }
 
+impl Drop for Database {
+    fn drop(&mut self) {
+        let meta_dir = self.get_meta_directory_path();
+        std::fs::remove_dir_all(meta_dir);
+    }
+}
+
 fn recursive_directory_closure<F>(
     db: &mut Database,
     path: &PathBuf,
@@ -142,4 +152,69 @@ where
     }
 
     Ok(())
+}
+
+#[derive(Clone, Debug)]
+struct RecursiveDir {
+    id: CollectionID,
+    parent_id: Option<CollectionID>,
+    name: String,
+    children: Vec<RecursiveDir>,
+}
+
+fn query_to_recursive(db: &Database) -> RecursiveDir {
+    let collections = db.get_all_collections().unwrap();
+
+    let mut hm: HashMap<CollectionID, RecursiveDir> = HashMap::new();
+
+    for coll in collections {
+        hm.insert(
+            coll.id(),
+            RecursiveDir {
+                id: coll.id(),
+                parent_id: coll.parent_collection(),
+                name: coll.name().to_string(),
+                children: Vec::new(),
+            },
+        );
+    }
+
+    fn children_of_collection(
+        map: &HashMap<CollectionID, RecursiveDir>,
+        coll: CollectionID,
+    ) -> VecDeque<CollectionID> {
+        map.values().filter(|v| v.parent_id == Some(coll)).map(|v| v.id).collect()
+    }
+
+    let mut root_dir = hm.values().find(|v| v.parent_id.is_none()).unwrap().clone();
+
+    let mut collection_stack: VecDeque<CollectionID> = children_of_collection(&hm, root_dir.id);
+
+    while let Some(coll) = collection_stack.pop_front() {
+        let mut children = children_of_collection(&hm, coll);
+        collection_stack.append(&mut children);
+
+        let coll_data = hm.get(&coll).unwrap().clone();
+        root_dir.children.push(coll_data);
+    }
+
+    root_dir
+}
+
+#[test]
+fn query_to_recursive_test() {
+    let mut handle = Database::from_connection("", Some(Connection::open_in_memory().unwrap()));
+    handle.get_connection().unwrap().execute_batch(include_str!("sqls/schema.sql")).unwrap();
+    handle.get_connection().unwrap().execute_batch(include_str!("sqls/test.sql")).unwrap();
+
+    let root = query_to_recursive(&handle);
+
+    print_directory(&root);
+}
+
+fn print_directory(dir: &RecursiveDir) {
+    println!("{:?}", dir.name);
+    for child in dir.children.iter() {
+        print_directory(child)
+    }
 }

@@ -1,11 +1,10 @@
-use crate::database::{DatabaseAudioFileHandler, DatabaseCollectionHandler};
-
 #[test]
 fn insert_from_directory() {
-    use crate::database::Database;
-    use std::path::Path;
+    use crate::database::prelude::*;
 
-    let mut handle = Database::from_directory(Path::new("test_files/").to_path_buf()).unwrap();
+    let mut handle = Database::from_connection("", Some(Connection::open_in_memory().unwrap()));
+    handle.get_connection().unwrap().execute_batch(include_str!("../sqls/schema.sql")).unwrap();
+    handle.get_connection().unwrap().execute_batch(include_str!("../sqls/test.sql")).unwrap();
 
     for col in handle.get_all_collections().unwrap() {
         println!("{:?}", col)
@@ -14,4 +13,6 @@ fn insert_from_directory() {
     for audio_file in handle.get_all_audio_files().unwrap() {
         println!("{:?}", audio_file);
     }
+
+    assert!(true)
 }

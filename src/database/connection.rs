@@ -23,7 +23,7 @@ impl DatabaseConnectionHandle for Database {
         }
 
         if !database_exists {
-            self.get_connection().unwrap().execute_batch(include_str!("./schema.sql")).unwrap();
+            self.get_connection().unwrap().execute_batch(include_str!("sqls/schema.sql")).unwrap();
         }
 
         Ok(())

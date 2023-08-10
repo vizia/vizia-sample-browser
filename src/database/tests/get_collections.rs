@@ -1,13 +1,10 @@
-use crate::database::{DatabaseCollectionHandler, DatabaseConnectionHandle};
+use crate::database::{prelude::*, tests::init_test_database};
 
 #[test]
 pub fn get_all_collections() {
-    use crate::database::{Collection, Database};
-    use rusqlite::Connection;
+    use crate::database::prelude::*;
 
-    let mut handle = Database::from_connection("", Some(Connection::open_in_memory().unwrap()));
-    handle.get_connection().unwrap().execute_batch(include_str!("../schema.sql")).unwrap();
-    handle.get_connection().unwrap().execute_batch(include_str!("test.sql")).unwrap();
+    let handle: Database = init_test_database();
 
     assert_eq!(
         handle.get_all_collections().unwrap(),
@@ -23,12 +20,9 @@ pub fn get_all_collections() {
 
 #[test]
 pub fn get_root_collection() {
-    use crate::database::{Collection, Database};
-    use rusqlite::Connection;
+    use crate::database::prelude::*;
 
-    let mut handle = Database::from_connection("", Some(Connection::open_in_memory().unwrap()));
-    handle.get_connection().unwrap().execute_batch(include_str!("../schema.sql")).unwrap();
-    handle.get_connection().unwrap().execute_batch(include_str!("test.sql")).unwrap();
+    let handle: Database = init_test_database();
 
     assert_eq!(
         handle.get_root_collection().unwrap(),
@@ -38,12 +32,9 @@ pub fn get_root_collection() {
 
 #[test]
 pub fn get_child_collections() {
-    use crate::database::{Collection, Database};
-    use rusqlite::Connection;
+    use crate::database::prelude::*;
 
-    let mut handle = Database::from_connection("", Some(Connection::open_in_memory().unwrap()));
-    handle.get_connection().unwrap().execute_batch(include_str!("../schema.sql")).unwrap();
-    handle.get_connection().unwrap().execute_batch(include_str!("test.sql")).unwrap();
+    let handle: Database = init_test_database();
 
     assert_eq!(
         handle.get_child_collections(0).unwrap(),

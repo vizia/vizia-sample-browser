@@ -71,9 +71,7 @@ pub trait DatabaseStore {
 
     //
     fn initialize_or_create_stores(&self) -> Result<(), DatabaseError> {
-        if !self.meta_directory_exists() {
-            create_dir(self.get_meta_directory_path())?
-        }
+        create_dir(self.get_meta_directory_path())?;
 
         Ok(())
     }
@@ -95,11 +93,5 @@ impl DatabaseStore for Database {
 
     fn retreive_metadata(&mut self) {
         self.meta = ron::from_str(&std::fs::read_to_string(self.get_meta_path()).unwrap()).unwrap()
-    }
-}
-
-impl Drop for Database {
-    fn drop(&mut self) {
-        self.initialize_or_create_stores();
     }
 }

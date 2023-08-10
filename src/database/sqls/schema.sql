@@ -21,13 +21,14 @@ CREATE TABLE audio_files (
 );
 
 CREATE TABLE tags (
-    id                  nvarchar(255) PRIMARY KEY,
-    color               integer
+    id                  integer PRIMARY KEY,
+    name                nvarchar(255),
+    color               nvarchar(8)
 );
 
 CREATE TABLE audio_files_tags (
     audio_file          integer,
-    tag                 varchar,
+    tag                 integer,
 
     PRIMARY KEY (audio_file, tag)
 

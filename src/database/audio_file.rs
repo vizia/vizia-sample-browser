@@ -2,7 +2,7 @@ use super::{CollectionID, Database, DatabaseConnectionHandle, DatabaseError};
 use serde::{Deserialize, Serialize};
 
 pub type AudioFileID = usize;
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AudioFile {
     id: AudioFileID,
     name: String,

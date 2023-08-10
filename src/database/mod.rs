@@ -20,24 +20,20 @@ pub use error::*;
 pub mod audio_file;
 pub use audio_file::*;
 
+pub mod tags;
+pub use tags::*;
+
 mod tests;
 
-pub type TagID = String;
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Tag {
-    id: TagID,
-    color: f32,
-}
-
-struct AudioFilesTag {
-    audio_file: AudioFileID,
-    tag: TagID,
-}
-
-impl From<Tag> for String {
-    fn from(value: Tag) -> Self {
-        value.id
-    }
+pub mod prelude {
+    pub use super::audio_file::*;
+    pub use super::collection::*;
+    pub use super::connection::*;
+    pub use super::error::*;
+    pub use super::handler::*;
+    pub use super::store::*;
+    pub use super::tags::*;
+    pub use rusqlite::*;
 }
 
 fn file_exists(path: &PathBuf) -> bool {
