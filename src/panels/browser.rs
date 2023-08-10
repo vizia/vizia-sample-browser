@@ -70,7 +70,6 @@ impl BrowserPanel {
                             handle.context().emit(TextEvent::StartEdit);
                         }
                     })
-                    // .navigable(BrowserPanel::search_shown)
                     .class("search");
 
                 HStack::new(cx, |cx| {
@@ -83,7 +82,6 @@ impl BrowserPanel {
                     .on_toggle(|cx| cx.emit(BrowserEvent::ToggleSearchCaseSensitivity))
                     .size(Pixels(20.0))
                     .class("filter-search")
-                    // .navigable(BrowserPanel::search_shown)
                     .tooltip(|cx| {
                         Label::new(cx, Localized::new("match-case"));
                     });
@@ -97,7 +95,6 @@ impl BrowserPanel {
                     .on_toggle(|cx| cx.emit(BrowserEvent::ToggleSearchFilter))
                     .size(Pixels(20.0))
                     .class("filter-search")
-                    // .navigable(BrowserPanel::search_shown)
                     .tooltip(|cx| {
                         Label::new(cx, Localized::new("filter"));
                     });
@@ -287,9 +284,8 @@ impl View for DirectoryItem {
                 _ => {}
             },
             WindowEvent::Press { mouse: _ } => {
-                // if *mouse {
                 cx.emit(BrowserEvent::SetFocused(Some(self.path.clone())));
-                // cx.focus();
+
                 if cx.modifiers().contains(Modifiers::CTRL) {
                     cx.emit(BrowserEvent::AddSelection(self.path.clone()));
                 } else {
