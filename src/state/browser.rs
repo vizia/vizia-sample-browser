@@ -1,11 +1,10 @@
-use std::{
-    collections::HashSet,
-    path::{Path, PathBuf},
-};
-
+use crate::{app_data::AppData, database::prelude::*};
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
-
+use std::{
+    collections::{HashMap, HashSet, VecDeque},
+    path::{Path, PathBuf},
+};
 use vizia::prelude::*;
 
 #[derive(Debug, Lens, Clone, Data)]
@@ -42,6 +41,8 @@ pub enum BrowserEvent {
 
 #[derive(Debug, Clone, Data, Lens)]
 pub struct Directory {
+    pub id: CollectionID,
+    pub parent_id: Option<CollectionID>,
     pub name: String,
     pub path: PathBuf,
     pub children: Vec<Directory>,
@@ -54,15 +55,7 @@ pub struct Directory {
 impl Default for BrowserState {
     fn default() -> Self {
         Self {
-            libraries: vec![Directory {
-                name: String::from("root"),
-                path: PathBuf::from("the-libre-sample-pack"),
-                children: vec![],
-                is_open: false,
-                num_files: 0,
-                match_indices: Vec::default(),
-                shown: true,
-            }],
+            libraries: Vec::new(),
             selected: HashSet::new(),
             focused: None,
             search_text: String::new(),
@@ -77,9 +70,10 @@ impl Model for BrowserState {
         event.map(|browser_event, _| match browser_event {
             // Temp: Load the assets directory for the treeview
             BrowserEvent::ViewAll => {
-                if let Some(root) = visit_dirs(Path::new("the-libre-sample-pack"), &mut 0) {
-                    self.libraries[0] = root;
-                }
+                let db_ref = AppData::database.get(cx);
+                let db = db_ref.lock().unwrap();
+                let root = collections_to_directories(&mut db.get_all_collections().unwrap());
+                self.libraries[0] = root;
             }
 
             BrowserEvent::Search(search_text) => {
@@ -308,40 +302,44 @@ fn is_collapsed<'a>(root: &'a Directory, dir: &PathBuf) -> bool {
     false
 }
 
-// Recursively build directory tree from root path
-fn visit_dirs(dir: &Path, num_files: &mut usize) -> Option<Directory> {
-    let name = dir.file_name()?.to_str()?.to_string();
-    let mut children = Vec::new();
+fn collections_to_directories(collections: &mut Vec<Collection>) -> Directory {
+    let mut hm: HashMap<CollectionID, Directory> = HashMap::new();
 
-    let mut file_count = 0;
-
-    if dir.is_dir() {
-        for entry in std::fs::read_dir(dir).ok()? {
-            let entry = entry.ok()?;
-            let path = entry.path();
-            if path.is_dir() {
-                children.push(visit_dirs(&path, &mut file_count)?);
-            } else {
-                // TODO: Check for audio files
-                file_count += 1;
-            }
-        }
+    for coll in collections {
+        hm.insert(
+            coll.id(),
+            Directory {
+                id: coll.id(),
+                parent_id: coll.parent_collection(),
+                name: coll.name().to_string(),
+                path: coll.path().clone(),
+                is_open: false,
+                num_files: 0,
+                shown: true,
+                match_indices: Vec::new(),
+                children: Vec::new(),
+            },
+        );
     }
 
-    *num_files += file_count;
+    fn children_of_collection(
+        map: &HashMap<CollectionID, Directory>,
+        coll: CollectionID,
+    ) -> VecDeque<CollectionID> {
+        map.values().filter(|v| v.parent_id == Some(coll)).map(|v| v.id).collect()
+    }
 
-    // Sort by alphabetical (should this be a setting?)
-    children.sort_by(|a, b| a.name.cmp(&b.name));
+    let mut root_dir = hm.values().find(|v| v.parent_id.is_none()).unwrap().clone();
 
-    let has_children = !children.is_empty();
+    let mut collection_stack: VecDeque<CollectionID> = children_of_collection(&hm, root_dir.id);
 
-    Some(Directory {
-        name,
-        path: PathBuf::from(dir),
-        children,
-        is_open: has_children,
-        num_files: file_count,
-        match_indices: Vec::default(),
-        shown: true,
-    })
+    while let Some(coll) = collection_stack.pop_front() {
+        let mut children = children_of_collection(&hm, coll);
+        collection_stack.append(&mut children);
+
+        let coll_data = hm.get(&coll).unwrap().clone();
+        root_dir.children.push(coll_data);
+    }
+
+    root_dir
 }

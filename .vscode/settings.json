@@ -10,4 +10,5 @@
 	},
 	"prettier.tabWidth": 4,
 	"css.lint.unknownProperties": "ignore",
+	"rust-analyzer.showUnlinkedFileNotification": false,
 }

@@ -1,3 +1,5 @@
+use std::path::{Path, PathBuf};
+
 use super::{Database, DatabaseConnectionHandle, DatabaseError};
 use serde::{Deserialize, Serialize};
 
@@ -7,11 +9,17 @@ pub struct Collection {
     id: CollectionID,
     parent_collection: Option<CollectionID>,
     name: String,
+    path: PathBuf,
 }
 
 impl Collection {
-    pub fn new(id: CollectionID, parent_collection: Option<CollectionID>, name: String) -> Self {
-        Self { id, parent_collection, name }
+    pub fn new(
+        id: CollectionID,
+        parent_collection: Option<CollectionID>,
+        name: String,
+        path: PathBuf,
+    ) -> Self {
+        Self { id, parent_collection, name, path }
     }
 
     pub fn id(&self) -> usize {
@@ -24,6 +32,10 @@ impl Collection {
 
     pub fn name(&self) -> &str {
         self.name.as_ref()
+    }
+
+    pub fn path(&self) -> &PathBuf {
+        &self.path
     }
 }
 
@@ -39,11 +51,17 @@ impl DatabaseCollectionHandler for Database {
     fn get_root_collection(&self) -> Result<Collection, DatabaseError> {
         if let Some(connection) = self.get_connection() {
             let mut query = connection.prepare(
-                "SELECT id, parent_collection, name FROM collections WHERE parent_collection IS NULL",
+                "SELECT id, parent_collection, name, path FROM collections WHERE parent_collection IS NULL",
             )?;
 
             let col: Collection = query.query_row([], |row| {
-                Ok(Collection { id: row.get(0)?, parent_collection: None, name: row.get(2)? })
+                let path: String = row.get(3)?;
+                Ok(Collection::new(
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    Path::new(&path).to_path_buf(),
+                ))
             })?;
 
             return Ok(col);
@@ -55,14 +73,16 @@ impl DatabaseCollectionHandler for Database {
     fn get_all_collections(&self) -> Result<Vec<Collection>, DatabaseError> {
         if let Some(connection) = self.get_connection() {
             let mut query =
-                connection.prepare("SELECT id, parent_collection, name FROM collections")?;
+                connection.prepare("SELECT id, parent_collection, name, path FROM collections")?;
 
             let collections = query.query_map([], |row| {
-                Ok(Collection {
-                    id: row.get(0)?,
-                    parent_collection: row.get(1)?,
-                    name: row.get(2)?,
-                })
+                let path: String = row.get(3)?;
+                Ok(Collection::new(
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    Path::new(&path).to_path_buf(),
+                ))
             })?;
 
             return Ok(collections.map(|v| v.unwrap()).collect());
@@ -77,15 +97,17 @@ impl DatabaseCollectionHandler for Database {
     ) -> Result<Vec<Collection>, DatabaseError> {
         if let Some(connection) = self.get_connection() {
             let mut query = connection.prepare(
-                "SELECT id, parent_collection, name FROM collections WHERE parent_collection = (?1)",
+                "SELECT id, parent_collection, name, path FROM collections WHERE parent_collection = (?1)",
             )?;
 
             let collections = query.query_map([parent], |row| {
-                Ok(Collection {
-                    id: row.get(0)?,
-                    name: row.get(2)?,
-                    parent_collection: row.get(1)?,
-                })
+                let path: String = row.get(3)?;
+                Ok(Collection::new(
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    Path::new(&path).to_path_buf(),
+                ))
             })?;
 
             return Ok(collections.map(|v| v.unwrap()).collect());

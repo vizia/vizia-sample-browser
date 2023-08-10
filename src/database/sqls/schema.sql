@@ -1,6 +1,7 @@
 CREATE TABLE collections (
     id                  integer UNIQUE PRIMARY KEY,
     parent_collection   integer NULL,
+    path                nvarchar(255),
     name                nvarchar(255),
 
     FOREIGN KEY(parent_collection) REFERENCES collections(id)
