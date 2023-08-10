@@ -1,7 +1,6 @@
 use crate::state::browser::Directory;
 
 use super::*;
-use itertools::Itertools;
 use rusqlite::Connection;
 use std::{
     any::Any,
@@ -13,11 +12,12 @@ use std::{
     rc::Rc,
     sync::atomic::AtomicUsize,
 };
+use vizia::prelude::*;
 
 pub const DATABASE_FILE_NAME: &str = ".database.vsb";
 pub const AUDIO_FILE_EXTENSIONS: [&'static str; 1] = ["wav"];
 
-#[derive(Debug)]
+#[derive(Debug, Lens)]
 pub struct Database {
     pub(super) path: PathBuf,
     pub(super) conn: Option<Connection>,
@@ -76,7 +76,7 @@ impl Database {
             };
 
             // Insert collection
-            let collection = Collection::new(id, parent_id, name);
+            let collection = Collection::new(id, parent_id, name, path.clone());
 
             db.insert_collection(collection);
 
@@ -154,67 +154,10 @@ where
     Ok(())
 }
 
-#[derive(Clone, Debug)]
-struct RecursiveDir {
-    id: CollectionID,
-    parent_id: Option<CollectionID>,
-    name: String,
-    children: Vec<RecursiveDir>,
-}
-
-fn query_to_recursive(db: &Database) -> RecursiveDir {
-    let collections = db.get_all_collections().unwrap();
-
-    let mut hm: HashMap<CollectionID, RecursiveDir> = HashMap::new();
-
-    for coll in collections {
-        hm.insert(
-            coll.id(),
-            RecursiveDir {
-                id: coll.id(),
-                parent_id: coll.parent_collection(),
-                name: coll.name().to_string(),
-                children: Vec::new(),
-            },
-        );
-    }
-
-    fn children_of_collection(
-        map: &HashMap<CollectionID, RecursiveDir>,
-        coll: CollectionID,
-    ) -> VecDeque<CollectionID> {
-        map.values().filter(|v| v.parent_id == Some(coll)).map(|v| v.id).collect()
-    }
-
-    let mut root_dir = hm.values().find(|v| v.parent_id.is_none()).unwrap().clone();
-
-    let mut collection_stack: VecDeque<CollectionID> = children_of_collection(&hm, root_dir.id);
-
-    while let Some(coll) = collection_stack.pop_front() {
-        let mut children = children_of_collection(&hm, coll);
-        collection_stack.append(&mut children);
-
-        let coll_data = hm.get(&coll).unwrap().clone();
-        root_dir.children.push(coll_data);
-    }
-
-    root_dir
-}
-
-#[test]
-fn query_to_recursive_test() {
-    let mut handle = Database::from_connection("", Some(Connection::open_in_memory().unwrap()));
-    handle.get_connection().unwrap().execute_batch(include_str!("sqls/schema.sql")).unwrap();
-    handle.get_connection().unwrap().execute_batch(include_str!("sqls/test.sql")).unwrap();
-
-    let root = query_to_recursive(&handle);
-
-    print_directory(&root);
-}
-
-fn print_directory(dir: &RecursiveDir) {
-    println!("{:?}", dir.name);
-    for child in dir.children.iter() {
-        print_directory(child)
+impl PartialEq for Database {
+    fn eq(&self, other: &Self) -> bool {
+        self.path == other.path
+            && self.conn.is_some() == other.conn.is_some()
+            && self.meta == other.meta
     }
 }

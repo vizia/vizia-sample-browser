@@ -2,6 +2,10 @@
 
 use app_data::AppData;
 use rusqlite::Connection;
+use std::{
+    collections::{HashMap, VecDeque},
+    sync::{Arc, Mutex},
+};
 use views::smart_table::SmartTable;
 use vizia::{
     icons::{ICON_LIST_SEARCH, ICON_SEARCH},
@@ -26,8 +30,6 @@ use app_data::*;
 mod popup_menu;
 
 fn main() {
-    let database_handle = Database::from_connection("", Some(Connection::open(".vsb").unwrap()));
-
     Application::new(|cx| {
         // Add resources
         cx.add_stylesheet(include_style!("resources/themes/style.css"))
@@ -69,6 +71,9 @@ fn main() {
             })
             .collect::<Vec<_>>();
 
+        let mut db =
+            Database::from_connection("test_files/", Some(Connection::open(".vsb").unwrap()));
+
         AppData {
             browser: BrowserState::default(),
             browser_width: 300.0,
@@ -76,6 +81,9 @@ fn main() {
             table_headers: headers,
             table_rows: rows,
             search_text: String::new(),
+
+            //
+            database: Arc::new(Mutex::new(db)),
         }
         .build(cx);
 
