@@ -72,7 +72,7 @@ pub trait DatabaseStore {
 
     //
     fn initialize_or_create_stores(&self) -> Result<(), DatabaseError> {
-        create_dir(self.get_meta_directory_path())?;
+        create_dir(self.get_meta_directory_path());
 
         Ok(())
     }
