@@ -4,6 +4,7 @@ use app_data::AppData;
 use rusqlite::Connection;
 use std::{
     collections::{HashMap, VecDeque},
+    path::Path,
     sync::{Arc, Mutex},
 };
 use views::smart_table::SmartTable;
@@ -71,8 +72,7 @@ fn main() {
             })
             .collect::<Vec<_>>();
 
-        let mut db =
-            Database::from_connection("test_files/", Some(Connection::open(".vsb").unwrap()));
+        let mut db = Database::from_directory(Path::new("test_files/").to_path_buf()).unwrap();
 
         let root = collections_to_directories(&mut db.get_all_collections().unwrap());
 

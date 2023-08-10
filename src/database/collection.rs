@@ -76,12 +76,15 @@ impl DatabaseCollectionHandler for Database {
                 connection.prepare("SELECT id, parent_collection, name, path FROM collections")?;
 
             let collections = query.query_map([], |row| {
-                let path: String = row.get(3)?;
                 Ok(Collection::new(
                     row.get(0)?,
                     row.get(1)?,
                     row.get(2)?,
-                    Path::new(&path).to_path_buf(),
+                    Path::new(&{
+                        let s: String = row.get(3)?;
+                        s
+                    })
+                    .to_path_buf(),
                 ))
             })?;
 
@@ -119,8 +122,8 @@ impl DatabaseCollectionHandler for Database {
     fn insert_collection(&mut self, collection: Collection) -> Result<(), DatabaseError> {
         if let Some(connection) = self.get_connection() {
             connection.execute(
-                "INSERT INTO collections (id, parent_collection, name) VALUES (?1, ?2, ?3)",
-                (collection.id, collection.parent_collection, collection.name),
+                "INSERT INTO collections (id, parent_collection, name, path) VALUES (?1, ?2, ?3, ?4)",
+                (collection.id, collection.parent_collection, collection.name, collection.path.to_str().unwrap()),
             )?;
         }
 
