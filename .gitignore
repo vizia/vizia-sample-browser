@@ -18,5 +18,9 @@ Cargo.lock
 
 /target
 .ignore/
-.ignore**
+.ignore/**
+
+.vsb-meta/
+.vsb-meta/**
+
 /the-libre-sample-pack

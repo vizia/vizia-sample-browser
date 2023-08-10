@@ -1,8 +1,18 @@
+#![allow(unused)] // Disable stupid warnings for now
+
 use app_data::AppData;
-use vizia::prelude::*;
+use rusqlite::Connection;
+use views::smart_table::SmartTable;
+use vizia::{
+    icons::{ICON_LIST_SEARCH, ICON_SEARCH},
+    prelude::*,
+};
 
 mod state;
 use state::*;
+
+mod database;
+use database::*;
 
 mod panels;
 use panels::*;
@@ -16,6 +26,8 @@ use app_data::*;
 mod popup_menu;
 
 fn main() {
+    let database_handle = Database::from_connection("", Some(Connection::open(".vsb").unwrap()));
+
     Application::new(|cx| {
         // Add resources
         cx.add_stylesheet(include_style!("resources/themes/style.css"))
