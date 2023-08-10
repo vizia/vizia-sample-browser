@@ -1,8 +1,9 @@
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use vizia::icons::{
-    ICON_CHEVRON_DOWN, ICON_FOLDER, ICON_FOLDER_FILLED, ICON_FOLDER_OPEN, ICON_LIST,
-    ICON_LIST_TREE, ICON_SEARCH,
+    ICON_CHEVRON_DOWN, ICON_FILTER, ICON_FOLDER, ICON_FOLDER_FILLED, ICON_FOLDER_OPEN,
+    ICON_LETTER_CASE, ICON_LIST, ICON_LIST_TREE, ICON_SEARCH,
 };
 use vizia::prelude::*;
 
@@ -12,57 +13,104 @@ use crate::state::browser::*;
 use crate::views::{ToggleButton, ToggleButtonModifiers};
 
 #[derive(Lens)]
-pub struct Browser {
-    search_text: String,
+pub struct BrowserPanel {
     search_shown: bool,
     tree_view: bool,
 }
 
-impl Browser {
+impl BrowserPanel {
     pub fn new(cx: &mut Context) -> Handle<Self> {
-        Self { search_text: String::new(), search_shown: true, tree_view: true }.build(cx, |cx| {
+        Self { search_shown: true, tree_view: true }.build(cx, |cx| {
             cx.emit(BrowserEvent::ViewAll);
 
-            // Panel Header
+            Keymap::from(vec![(
+                KeyChord::new(Modifiers::CTRL, Code::KeyF),
+                KeymapEntry::new((), |cx| cx.emit(BrowserEvent::ToggleShowSearch)),
+            )])
+            .build(cx);
+
+            // Header
             HStack::new(cx, |cx| {
                 // Panel Icon
                 Icon::new(cx, ICON_FOLDER_OPEN).class("panel-icon");
 
                 // List/Tree Toggle Buttons
                 HStack::new(cx, |cx| {
-                    ToggleButton::new(cx, Browser::tree_view, |cx| Icon::new(cx, ICON_LIST_TREE));
-                    ToggleButton::new(cx, Browser::tree_view.map(|flag| !flag), |cx| {
-                        Icon::new(cx, ICON_LIST)
-                    });
+                    Button::new(
+                        cx,
+                        |cx| cx.emit(BrowserEvent::ShowTree),
+                        |cx| Icon::new(cx, ICON_LIST_TREE),
+                    )
+                    .checked(BrowserPanel::tree_view);
+
+                    Button::new(
+                        cx,
+                        |cx| cx.emit(BrowserEvent::ShowList),
+                        |cx| Icon::new(cx, ICON_LIST),
+                    )
+                    .checked(BrowserPanel::tree_view.map(|flag| !flag));
                 })
                 .class("button-group")
                 .width(Auto);
 
                 // Search Toggle Button
-                ToggleButton::new(cx, Browser::search_shown, |cx| Icon::new(cx, ICON_SEARCH))
+                ToggleButton::new(cx, BrowserPanel::search_shown, |cx| Icon::new(cx, ICON_SEARCH))
                     .on_toggle(|cx| cx.emit(BrowserEvent::ToggleShowSearch));
             })
             .class("header");
 
             // Search Box
             HStack::new(cx, |cx| {
-                Textbox::new(cx, Browser::search_text)
-                    .width(Stretch(1.0))
+                Textbox::new(cx, AppData::browser.then(BrowserState::search_text))
+                    .on_edit(|cx, text| cx.emit(BrowserEvent::Search(text.clone())))
                     .placeholder(Localized::new("search"))
-                    .bind(Browser::search_shown, |mut handle, shown| {
+                    .width(Stretch(1.0))
+                    .bind(BrowserPanel::search_shown, |mut handle, shown| {
                         if shown.get(&handle) {
                             handle.context().emit(TextEvent::StartEdit);
                         }
                     })
                     .class("search");
-                // .on_edit(|cx, text| cx.emit(AppDataSetter::EditableText(text)));
+
+                HStack::new(cx, |cx| {
+                    // Match Case Toggle Button
+                    ToggleButton::new(
+                        cx,
+                        AppData::browser.then(BrowserState::search_case_sensitive),
+                        |cx| Icon::new(cx, ICON_LETTER_CASE),
+                    )
+                    .on_toggle(|cx| cx.emit(BrowserEvent::ToggleSearchCaseSensitivity))
+                    .size(Pixels(20.0))
+                    .class("filter-search")
+                    .tooltip(|cx| {
+                        Label::new(cx, Localized::new("match-case"));
+                    });
+
+                    // Filter Results Toggle Button
+                    ToggleButton::new(
+                        cx,
+                        AppData::browser.then(BrowserState::filter_search),
+                        |cx| Icon::new(cx, ICON_FILTER),
+                    )
+                    .on_toggle(|cx| cx.emit(BrowserEvent::ToggleSearchFilter))
+                    .size(Pixels(20.0))
+                    .class("filter-search")
+                    .tooltip(|cx| {
+                        Label::new(cx, Localized::new("filter"));
+                    });
+                })
+                .position_type(PositionType::SelfDirected)
+                .space(Stretch(1.0))
+                .right(Pixels(4.0))
+                .col_between(Pixels(2.0))
+                .size(Auto);
             })
             .class("searchbar")
-            .toggle_class("shown", Browser::search_shown)
+            .toggle_class("shown", BrowserPanel::search_shown)
             .col_between(Pixels(8.0))
             .height(Auto);
 
-            // Folder Treeview
+            // Folder TreeView
             ScrollView::new(cx, 0.0, 0.0, false, true, |cx| {
                 treeview(
                     cx,
@@ -81,7 +129,7 @@ impl Browser {
                 );
             });
 
-            // Panel Footer
+            // Footer
             HStack::new(cx, |cx| {
                 Label::new(cx, "550 samples in 34 folders");
             })
@@ -90,16 +138,35 @@ impl Browser {
     }
 }
 
-impl View for Browser {
+impl View for BrowserPanel {
     fn element(&self) -> Option<&'static str> {
-        Some("browser")
+        Some("browser-panel")
     }
 
-    fn event(&mut self, _cx: &mut EventContext, event: &mut Event) {
+    fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|browser_event, _| match browser_event {
             BrowserEvent::ToggleShowSearch => self.search_shown ^= true,
+
+            BrowserEvent::ShowTree => self.tree_view = true,
+            BrowserEvent::ShowList => self.tree_view = false,
             _ => {}
-        })
+        });
+
+        event.map(|window_event, _| match window_event {
+            WindowEvent::KeyDown(code, _) => match code {
+                Code::ArrowLeft => cx.emit(BrowserEvent::CollapseDirectory),
+                Code::ArrowRight => cx.emit(BrowserEvent::ExpandDirectory),
+                Code::ArrowDown => cx.emit(BrowserEvent::FocusNext),
+                Code::ArrowUp => cx.emit(BrowserEvent::FocusPrev),
+                _ => {}
+            },
+
+            WindowEvent::FocusOut => {
+                BrowserEvent::SetFocused(None);
+            }
+
+            _ => {}
+        });
     }
 }
 
@@ -108,83 +175,137 @@ where
     L: Lens<Target = Directory>,
 {
     Binding::new(cx, root.then(Directory::path), move |cx, file_path| {
-        let file_path1 = file_path.get(cx);
-        let file_path2 = file_path.get(cx);
-        let file_path3 = file_path.get(cx);
+        let file_path = file_path.get(cx);
+        let file_path2 = file_path.clone();
+        let file_path3 = file_path.clone();
 
         let selected_lens = AppData::browser
             .then(BrowserState::selected)
-            .map(move |selected| &file_path1 == selected);
+            .map(move |selected| selected.contains(&file_path));
 
-        HStack::new(cx, |cx| {
-            // Arrow Icon
-            Icon::new(cx, ICON_CHEVRON_DOWN)
-                .class("toggle_folder")
-                .visibility(root.then(Directory::children).map(|c| !c.is_empty()))
-                .hoverable(root.then(Directory::children).map(|c| !c.is_empty()))
-                .rotate(root.then(Directory::is_open).map(|flag| {
-                    if *flag {
-                        Angle::Deg(0.0)
-                    } else {
-                        Angle::Deg(-90.0)
-                    }
-                }))
-                .on_press(move |cx| {
-                    if let Some(file_path) = &file_path3 {
-                        cx.emit(BrowserEvent::ToggleOpen(file_path.clone()));
-                        cx.emit(BrowserEvent::SetSelected(file_path.clone()));
-                    }
-                });
+        let focused_lens = AppData::browser
+            .then(BrowserState::focused)
+            .map(move |focused| focused == &Some(file_path2.clone()));
 
-            // Folder Icon
-            Icon::new(
-                cx,
-                selected_lens
-                    .map(|is_selected| if *is_selected { ICON_FOLDER_FILLED } else { ICON_FOLDER }),
-            )
-            .class("folder-icon")
-            .checked(selected_lens);
-
-            // Directory name
-            Label::new(cx, root.then(Directory::name))
-                .width(Stretch(1.0))
-                .text_wrap(false)
-                .hoverable(false);
-
-            // Number of Files
-            Label::new(cx, root.then(Directory::num_files))
-                .width(Auto)
-                .left(Stretch(1.0))
-                .text_wrap(false)
-                .hoverable(false);
-        })
-        .class("dir-item")
-        // .toggle_class(
-        //     "focused",
-        //     AppData::browser.then(BrowserState::selected).map(move |selected| {
-        //         match (&file_path1, selected) {
-        //             (Some(fp), Some(s)) => s.starts_with(fp),
-        //             _ => false,
-        //         }
-        //     }),
-        // )
-        .toggle_class("selected", selected_lens)
-        .on_press(move |cx| {
-            cx.focus();
-            if let Some(file_path) = &file_path2 {
-                cx.emit(BrowserEvent::SetSelected(file_path.clone()));
-            }
-        })
-        // .col_between(Pixels(4.0))
-        .child_left(Pixels(10.0 * level as f32 + 4.0));
+        DirectoryItem::new(cx, root, selected_lens, focused_lens, file_path3)
+            .child_left(Pixels(10.0 * level as f32 + 4.0));
     });
+}
+
+pub struct DirectoryItem {
+    path: PathBuf,
+}
+
+impl DirectoryItem {
+    pub fn new(
+        cx: &mut Context,
+        root: impl Lens<Target = Directory>,
+        selected: impl Lens<Target = bool>,
+        focused: impl Lens<Target = bool>,
+        path: PathBuf,
+    ) -> Handle<Self> {
+        Self { path: path.clone() }
+            .build(cx, |cx| {
+                // Arrow Icon
+                Icon::new(cx, ICON_CHEVRON_DOWN)
+                    .class("dir-arrow")
+                    .visibility(root.then(Directory::children).map(|c| !c.is_empty()))
+                    .hoverable(root.then(Directory::children).map(|c| !c.is_empty()))
+                    .rotate(root.then(Directory::is_open).map(|flag| {
+                        if *flag {
+                            Angle::Deg(0.0)
+                        } else {
+                            Angle::Deg(-90.0)
+                        }
+                    }))
+                    .on_press(move |cx| {
+                        cx.emit(BrowserEvent::ToggleDirectory(path.clone()));
+                        cx.emit(BrowserEvent::SetFocused(Some(path.clone())));
+                        cx.emit(BrowserEvent::Select(path.clone()));
+                    })
+                    .cursor(CursorIcon::Hand);
+
+                // Folder Icon
+                Icon::new(
+                    cx,
+                    selected.map(
+                        |is_selected| if *is_selected { ICON_FOLDER_FILLED } else { ICON_FOLDER },
+                    ),
+                )
+                .class("dir-icon")
+                .cursor(CursorIcon::Hand)
+                .checked(selected);
+
+                // Directory name
+                Label::new(cx, root.then(Directory::name))
+                    .width(Stretch(1.0))
+                    .text_wrap(false)
+                    .hoverable(false)
+                    .overflow(Overflow::Hidden)
+                    .class("dir-name");
+
+                // Number of Files
+                Label::new(cx, root.then(Directory::num_files))
+                    .text_wrap(false)
+                    .hoverable(false)
+                    .class("dir-num");
+            })
+            .navigable(true)
+            .focused(focused)
+            .class("dir-item")
+            .layout_type(LayoutType::Row)
+            .toggle_class("selected", selected)
+            .toggle_class(
+                "search-match",
+                root.then(Directory::match_indices).map(|idx| !idx.is_empty()),
+            )
+        // TODO
+        // .tooltip(|cx| {
+        //     Tooltip::new(cx, |cx| {
+        //         Label::new(
+        //             cx,
+        //             root.then(Directory::path)
+        //                 .map(|path| path.as_os_str().to_str().unwrap().to_owned()),
+        //         );
+        //     });
+        // })
+    }
+}
+
+impl View for DirectoryItem {
+    fn element(&self) -> Option<&'static str> {
+        Some("directory-item")
+    }
+
+    fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
+        event.map(|window_event, _| match window_event {
+            WindowEvent::KeyDown(code, _) => match code {
+                Code::Escape => cx.emit(BrowserEvent::Deselect),
+                _ => {}
+            },
+            WindowEvent::Press { mouse: _ } => {
+                cx.emit(BrowserEvent::SetFocused(Some(self.path.clone())));
+
+                if cx.modifiers().contains(Modifiers::CTRL) {
+                    cx.emit(BrowserEvent::AddSelection(self.path.clone()));
+                } else {
+                    cx.emit(BrowserEvent::Select(self.path.clone()));
+                }
+            }
+
+            WindowEvent::FocusIn => {
+                cx.emit(BrowserEvent::SetFocused(Some(self.path.clone())));
+            }
+            _ => {}
+        });
+    }
 }
 
 fn treeview<L>(
     cx: &mut Context,
     lens: L,
     level: u32,
-    header: impl Fn(&mut Context, L, u32),
+    header: impl Fn(&mut Context, L, u32) + 'static,
     content: impl Fn(&mut Context, Index<Then<L, Wrapper<children>>, Directory>, u32) + 'static,
 ) where
     L: Lens<Target = Directory>,
@@ -192,44 +313,49 @@ fn treeview<L>(
 {
     let content = Rc::new(content);
     VStack::new(cx, |cx| {
-        (header)(cx, lens, level);
-        Binding::new(cx, lens.then(Directory::is_open), move |cx, is_open| {
-            if is_open.get(cx) {
-                let content1 = content.clone();
-                VStack::new(cx, |cx| {
-                    List::new(cx, lens.then(Directory::children), move |cx, _, item| {
-                        (content1)(cx, item, level + 1);
-                    })
-                    .width(Stretch(1.0))
-                    .height(Auto);
+        Binding::new(cx, lens.then(Directory::shown), move |cx, shown| {
+            if shown.get(cx) {
+                (header)(cx, lens, level);
+                let content = content.clone();
+                Binding::new(cx, lens.then(Directory::is_open), move |cx, is_open| {
+                    if is_open.get(cx) {
+                        let content1 = content.clone();
+                        VStack::new(cx, |cx| {
+                            List::new(cx, lens.then(Directory::children), move |cx, _, item| {
+                                (content1)(cx, item, level + 1);
+                            })
+                            .width(Stretch(1.0))
+                            .height(Auto);
 
-                    // Element::new(cx)
-                    //     .left(Pixels(10.0 * (level + 1) as f32))
-                    //     .height(Stretch(1.0))
-                    //     .width(Pixels(1.0))
-                    //     .position_type(PositionType::SelfDirected)
-                    //     .display(lens.then(File::is_open))
-                    //     .class("dir-line");
-                    // .toggle_class(
-                    //     "focused",
-                    //     AppData::browser.then(BrowserState::selected).map(move |selected| {
-                    //         if let Some(path) = &file_path1 {
-                    //             if let Some(selected) = selected {
-                    //                 if let Some(dir) = dir_path(selected) {
-                    //                     dir == path
-                    //                 } else {
-                    //                     false
-                    //                 }
-                    //             } else {
-                    //                 false
-                    //             }
-                    //         } else {
-                    //             false
-                    //         }
-                    //     }),
-                    // );
-                })
-                .height(Auto);
+                            // Element::new(cx)
+                            //     .left(Pixels(10.0 * (level + 1) as f32 + 4.0))
+                            //     .height(Stretch(1.0))
+                            //     .width(Pixels(1.0))
+                            //     .position_type(PositionType::SelfDirected)
+                            //     .display(lens.then(Directory::is_open))
+                            //     .class("dir-line");
+                            // .toggle_class(
+                            //     "focused",
+                            //     AppData::browser.then(BrowserState::selected).map(move |selected| {
+                            //         if let Some(path) = &file_path1 {
+                            //             if let Some(selected) = selected {
+                            //                 if let Some(dir) = dir_path(selected) {
+                            //                     dir == path
+                            //                 } else {
+                            //                     false
+                            //                 }
+                            //             } else {
+                            //                 false
+                            //             }
+                            //         } else {
+                            //             false
+                            //         }
+                            //     }),
+                            // );
+                        })
+                        .height(Auto);
+                    }
+                });
             }
         });
     })

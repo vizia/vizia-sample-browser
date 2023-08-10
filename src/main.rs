@@ -80,7 +80,6 @@ fn main() {
         .build(cx);
 
         HStack::new(cx, |cx| {
-            // TODO: Place this in resizable stack
             ResizableStack::new(
                 cx,
                 AppData::browser_width,
@@ -88,61 +87,22 @@ fn main() {
                 |cx, width| cx.emit(AppEvent::SetBrowserWidth(width)),
                 |cx| {
                     VStack::new(cx, |cx| {
-                        Browser::new(cx);
+                        BrowserPanel::new(cx);
                     })
                     .class("panel");
                 },
-            );
+            )
+            .class("browser");
+
             VStack::new(cx, |cx| {
-                // Table View
+                // Samples Panel
                 ResizableStack::new(
                     cx,
                     AppData::table_height,
                     ResizeStackDirection::Bottom,
                     |cx, height| cx.emit(AppEvent::SetTableHeight(height)),
                     |cx| {
-                        VStack::new(cx, |cx| {
-                            HStack::new(cx, |cx| {
-                                Icon::new(cx, ICON_LIST_SEARCH).class("panel-icon");
-
-                                HStack::new(cx, |cx| {
-                                    Textbox::new(cx, AppData::search_text)
-                                        .class("icon-before")
-                                        .width(Stretch(1.0))
-                                        .class("search")
-                                        .placeholder("Search");
-                                    // .on_edit(|cx, text| cx.emit(AppDataSetter::EditableText(text)));
-                                    Icon::new(cx, ICON_SEARCH)
-                                        .color(Color::gray())
-                                        .size(Pixels(28.0))
-                                        .position_type(PositionType::SelfDirected);
-                                })
-                                .height(Auto)
-                                .width(Stretch(1.0));
-                            })
-                            .col_between(Pixels(8.0))
-                            .height(Auto)
-                            .class("header");
-
-                            SmartTable::new(
-                                cx,
-                                AppData::table_headers,
-                                AppData::table_rows,
-                                |cx, item| {
-                                    Label::new(cx, item)
-                                        .width(Stretch(1.0))
-                                        .border_color(Color::bisque())
-                                        // .border_width(Pixels(1.0))
-                                        .child_space(Stretch(1.0))
-                                        .child_left(if item.idx() == 0 {
-                                            Pixels(4.0)
-                                        } else {
-                                            Stretch(1.0)
-                                        });
-                                },
-                            );
-                        })
-                        .class("panel");
+                        SamplesPanel::new(cx);
                     },
                 );
                 // Sample Player

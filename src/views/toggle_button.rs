@@ -14,6 +14,9 @@ impl ToggleButton {
             .build(cx, |cx| {
                 (content)(cx).hoverable(false);
             })
+            .role(Role::ToggleButton)
+            .navigable(true)
+            .default_action_verb(DefaultActionVerb::Click)
             .checked(lens)
     }
 }
@@ -25,6 +28,13 @@ impl View for ToggleButton {
 
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|window_event, meta| match window_event {
+            WindowEvent::PressDown { mouse } => {
+                if *mouse {
+                    cx.capture()
+                }
+                cx.focus();
+            }
+
             WindowEvent::Press { mouse } => {
                 let over = if *mouse { cx.mouse().left.pressed } else { cx.focused() };
                 if over == cx.current() && meta.target == cx.current() && !cx.is_disabled() {
@@ -32,6 +42,10 @@ impl View for ToggleButton {
                         (callback)(cx);
                     }
                 }
+            }
+
+            WindowEvent::MouseUp(button) if *button == MouseButton::Left => {
+                cx.release();
             }
 
             WindowEvent::ActionRequest(action) => match action.action {

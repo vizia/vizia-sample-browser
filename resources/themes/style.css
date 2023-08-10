@@ -2,9 +2,9 @@
     border: 1px red;
 } */
 
-* {
+/* * {
     color: #fff;
-}
+} */
 
 :root {
     background-color: #181818;
@@ -26,36 +26,61 @@
     font-size: 20;
 }
 
-browser {
+.button-group button {
+    background-color: transparent;
+    child-space: 1s;
+    size: 28px;
+    border-radius: 4px;
+}
+
+.button-group button:checked {
+    background-color: #336bcc;
+}
+
+.button-group button:first-child {
+    border-top-right-radius: 0px;
+    border-bottom-right-radius: 0px;
+}
+
+.button-group button:last-child {
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+}
+
+resizable-stack.browser {
+    min-width: 200px;
+    max-width: 500px;
+}
+
+browser-panel {
     size: 1s;
     row-between: 8px;
 }
 
-browser > .header {
+browser-panel > .header {
     height: 28px;
     width: 1s;
     col-between: 1s;
 }
 
-browser > .footer {
+browser-panel > .footer {
     height: auto;
     width: 1s;
     child-left: 1s;
     child-right: 1s;
 }
 
-.folder-icon:checked {
-    color: #90b7f9;
-}
-
 .searchbar {
     max-height: 0px;
     transition: max-height 100ms;
     overflow: hidden;
+    display: none;
+    transition: display 1ms 100ms;
 }
 
 .searchbar.shown {
     max-height: 28px;
+    display: flex;
     transition: max-height 100ms;
 }
 
@@ -71,14 +96,41 @@ textbox.search .placeholder {
     color: #a8a8a8;
 }
 
+textbox:checked {
+    border-color: #336bcc;
+}
+
+button:focus-visible {
+    outline: #336bcc;
+    outline-offset: 3px;
+    outline-width: 1px;
+}
+
 toggle-button {
-    background-color: #484848;
+    background-color: transparent;
+    color: #8c8c8c;
     size: 28px;
     border-radius: 4px;
+    cursor: hand;
 }
 
 toggle-button:checked {
     background-color: #336bcc;
+    color: white;
+}
+
+toggle-button:focus-visible {
+    outline: #336bcc;
+    outline-offset: 3px;
+    outline-width: 1px;
+}
+
+toggle-button.filter-search {
+    color: #8c8c8c;
+}
+
+toggle-button.filter-search:checked {
+    color: white;
 }
 
 icon {
@@ -114,26 +166,53 @@ button.menu-button {
     child-right: 8px;
 }
 
-.dir-item > label {
+directory-item > label {
     height: 20px;
     /* border: 1px blue; */
 }
 
-.dir-item {
+directory-item {
     height: 28px;
     width: 1s;
-    border-radius: 4px;
+    border-radius: 2px;
     child-space: 4px;
     col-between: 3px;
     cursor: hand;
 }
 
-.dir-item:hover {
+directory-item:hover {
     background-color: #3d3d3d;
 }
 
-.dir-item.selected {
+directory-item.selected {
     background-color: #336bcc2f;
+}
+
+directory-item:focus-visible {
+    outline: 1px #336bcc;
+    outline-offset: -1px;
+}
+
+directory-item .dir-num {
+    color: #8c8c8c;
+    width: 30px;
+    child-left: 1s;
+}
+
+directory-item .dir-arrow {
+    color: #8c8c8c;
+}
+
+directory-item .dir-icon {
+    color: #8c8c8c;
+}
+
+directory-item .dir-icon:checked {
+    color: #90b7f9;
+}
+
+directory-item.search-match .dir-name {
+    color: #90b7f9;
 }
 
 /* .dir-file.selected:over {
@@ -184,6 +263,13 @@ button.menu-button {
     row-between: 8px;
 }
 
+samples-panel {
+    size: 1s;
+    background-color: #323232;
+    child-space: 8px;
+    row-between: 8px;
+}
+
 .resize_handle {
     background-color: #484848;
     transition: background-color 100ms;
@@ -191,14 +277,21 @@ button.menu-button {
     opacity: 0;
 }
 
-smart-table.dragging .resize_handle {
+smart-table .handles resize-handle {
+    background-color: #484848;
+    opacity: 0;
+    transition: opacity 100ms 1s;
+}
+
+smart-table.dragging resize-handle {
+    background-color: #336bcc;
     opacity: 1;
     transition: opacity 100ms;
 }
 
-smart-table .header:hover .resize_handle {
+smart-table .handles:hover resize-handle {
     opacity: 1;
-    transition: opacity 100ms;
+    transition: opacity 100ms 200ms;
 }
 
 .resize_handle:over {
@@ -324,11 +417,11 @@ smart-table-row.header * {
 }
 
 resize-handle {
-    width: 1s;
+    width: 1px;
     height: 6px;
-    top: -3px;
     z-index: 2;
-    background-color: #18181800;
+    /* background-color: #18181800; */
+    background-color: #484848;
     transition: background-color 100ms;
 }
 
@@ -343,10 +436,10 @@ resize-handle.active {
 }
 
 resize-handle.vertical {
-    width: 6px;
+    width: 2px;
     height: 1s;
     top: 0px;
-    left: -2px;
+    translate: -1px 0px;
 }
 
 resize-handle:disabled {
