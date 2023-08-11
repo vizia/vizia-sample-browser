@@ -28,7 +28,7 @@ impl Database {
     pub fn from_directory(path: PathBuf) -> Result<Self, DatabaseError> {
         // Check file is directory
         if !directory_exists(&path) {
-            return Err(DatabaseError::PathNotDirecotry);
+            return Err(DatabaseError::PathNotDirectory);
         }
 
         // Open connection
