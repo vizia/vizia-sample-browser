@@ -103,7 +103,6 @@ impl DatabaseAudioFileHandler for Database {
                     audio_file.bit_depth,
                     audio_file.bpm,
                     audio_file.key,
-                    audio_file.key,
                     audio_file.size,
                 ),
             )?;
