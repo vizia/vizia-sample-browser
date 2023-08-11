@@ -17,9 +17,13 @@ fn test_recursive_algorithm() {
     for n in 0..10 {
         let pre = Instant::now();
 
-        let _ = implicit_collections_to_directories(&collections);
+        let result = implicit_collections_to_directories(&collections);
 
         let after = Instant::now();
+
+        if n == 0 {
+            print_recursive_structure(&result, 0);
+        }
 
         let elapsed = after - pre;
 
@@ -29,9 +33,13 @@ fn test_recursive_algorithm() {
     for n in 0..10 {
         let pre = Instant::now();
 
-        let _ = recursive_collections_to_directories(&collections, root.clone());
+        let result = recursive_collections_to_directories(&collections, root.clone());
 
         let after = Instant::now();
+
+        if n == 0 {
+            print_recursive_structure(&result, 0);
+        }
 
         let elapsed = after - pre;
 
@@ -112,5 +120,12 @@ fn recursive_collections_to_directories(
         is_open: false,
         children,
         ..Default::default()
+    }
+}
+
+fn print_recursive_structure(dir: &Directory, depth: usize) {
+    println!("{} - ({}) {}", "    ".repeat(depth), dir.id, dir.name);
+    for child in dir.children.iter() {
+        print_recursive_structure(child, depth + 1);
     }
 }
