@@ -54,34 +54,38 @@ fn main() {
                 .map(|v| v.to_string())
                 .collect::<Vec<_>>();
 
-        let rows = (0..20)
-            .map(|row| {
-                vec![
-                    &format!("MSL_snare_{:02}", row),
-                    "?",
-                    "5.3 sec",
-                    "44100",
-                    "24",
-                    "?",
-                    "?",
-                    "2.5MB",
-                ]
-                .iter_mut()
-                .map(|v| v.to_string())
-                .collect::<Vec<_>>()
-            })
-            .collect::<Vec<_>>();
+        // let rows = (0..20)
+        //     .map(|row| {
+        //         vec![
+        //             &format!("MSL_snare_{:02}", row),
+        //             "?",
+        //             "5.3 sec",
+        //             "44100",
+        //             "24",
+        //             "?",
+        //             "?",
+        //             "2.5MB",
+        //         ]
+        //         .iter_mut()
+        //         .map(|v| v.to_string())
+        //         .collect::<Vec<_>>()
+        //     })
+        //     .collect::<Vec<_>>();
 
-        let mut db = Database::from_directory(Path::new("test_files/").to_path_buf()).unwrap();
+        let mut db =
+            Database::from_directory(Path::new("the-libre-sample-pack/").to_path_buf()).unwrap();
 
         let root = collections_to_directories(&mut db.get_all_collections().unwrap());
+
+        let audio_files = db.get_all_audio_files().unwrap().len();
+        println!("num: {}", audio_files);
 
         AppData {
             browser: BrowserState::new(root),
             browser_width: 300.0,
             table_height: 300.0,
             table_headers: headers,
-            table_rows: rows,
+            table_rows: Vec::new(),
             search_text: String::new(),
             //
             database: Arc::new(Mutex::new(db)),

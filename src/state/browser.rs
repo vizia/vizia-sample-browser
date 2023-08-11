@@ -1,4 +1,4 @@
-use crate::app_data::AppData;
+use crate::app_data::{AppData, AppEvent};
 use crate::database::prelude::*;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
@@ -29,7 +29,7 @@ impl BrowserState {
 #[derive(Debug, Clone, PartialEq)]
 pub enum BrowserEvent {
     Search(String),
-    Select(PathBuf),
+    Select(PathBuf, CollectionID),
     Deselect,
     AddSelection(PathBuf),
     SetFocused(Option<PathBuf>),
@@ -131,9 +131,10 @@ impl Model for BrowserState {
                 }
             }
 
-            BrowserEvent::Select(path) => {
+            BrowserEvent::Select(path, collection) => {
                 self.selected.clear();
                 self.selected.insert(path.clone());
+                cx.emit(AppEvent::ViewCollection(*collection));
             }
 
             BrowserEvent::AddSelection(path) => {

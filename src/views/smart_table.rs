@@ -31,7 +31,7 @@ pub struct SmartTable {
 }
 
 impl SmartTable {
-    pub fn new<L1, L2, R: 'static, T1: 'static, T2: 'static, F>(
+    pub fn new<L1, L2, R: 'static, T1: 'static, F>(
         cx: &mut Context,
         headers: L1,
         rows: L2,
@@ -42,10 +42,10 @@ impl SmartTable {
         L2: Lens,
         <L1 as Lens>::Target: std::ops::Deref<Target = [T1]>,
         <L2 as Lens>::Target: std::ops::Deref<Target = [R]>,
-        R: Data + std::ops::Deref<Target = [T2]>,
+        R: Data,
         T1: Data + ToStringLocalized,
-        T2: Data + ToStringLocalized,
-        F: 'static + Copy + Fn(&mut Context, Index<Index<L2, R>, T2>),
+        // T2: Data + ToStringLocalized,
+        F: 'static + Copy + Fn(&mut Context, Index<L2, R>, usize),
     {
         let num_cols = headers.map(|h| h.len()).get(cx);
 
@@ -84,11 +84,12 @@ impl SmartTable {
             })
             .height(Auto);
             //
-            VirtualList::new(cx, rows, 26.0, move |cx, row_index, row| {
+            List::new(cx, rows, move |cx, row_index, row| {
+                println!("rebuild virtual list");
                 //
-                List::new(cx, row, move |cx, col_index, item| {
+                List::new(cx, headers, move |cx, col_index, _| {
                     HStack::new(cx, move |cx| {
-                        (content)(cx, item);
+                        (content)(cx, row, col_index);
                     })
                     .width(Self::widths.index(col_index))
                     .height(Auto);
@@ -96,9 +97,7 @@ impl SmartTable {
                 .class("row")
                 .toggle_class("odd", row_index % 2 == 0)
                 .width(Stretch(1.0))
-                .layout_type(LayoutType::Row)
-
-                // Element::new(cx).background_color(Color::blue()).width(Stretch(1.0))
+                .layout_type(LayoutType::Row);
             })
             .width(Stretch(1.0));
 
