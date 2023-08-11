@@ -1,7 +1,7 @@
 #[derive(Debug)]
 pub enum DatabaseError {
     ConnectionClosed,
-    PathNotDirecotry,
+    PathNotDirectory,
     RusqliteError(rusqlite::Error),
     IOError(std::io::Error),
 }
