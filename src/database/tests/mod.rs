@@ -4,7 +4,6 @@ pub mod get_audio_files;
 pub mod get_collections;
 pub mod get_tags;
 pub mod insert;
-pub mod recursive_benchmark;
 
 const TEST_DIRECTORY: &str = "test_files/";
 const TEST_META_DIRECTORY: &str = "test_files/.vsb-meta/";

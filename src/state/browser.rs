@@ -1,6 +1,5 @@
 use crate::app_data::{AppData, AppEvent};
 use crate::database::prelude::*;
-use crate::RecursiveInner;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use std::{
