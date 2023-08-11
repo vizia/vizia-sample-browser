@@ -1,4 +1,4 @@
-use crate::{database::prelude::*, state::browser::Directory, RecursiveInner};
+use crate::{database::prelude::*, state::browser::Directory};
 use std::{
     collections::{HashMap, VecDeque},
     path::Path,
@@ -6,6 +6,36 @@ use std::{
     sync::Mutex,
     time::Instant,
 };
+
+#[derive(Clone)]
+struct RecursiveInner {
+    id: CollectionID,
+    parent_id: Option<CollectionID>,
+    name: String,
+    path: PathBuf,
+    children: Vec<Rc<Mutex<RecursiveInner>>>,
+}
+
+impl RecursiveInner {
+    fn to_directory(inner: &mut RecursiveInner) -> Directory {
+        let children = inner
+            .children
+            .iter_mut()
+            .map(|child| RecursiveInner::to_directory(&mut child.lock().unwrap()))
+            .collect();
+
+        Directory {
+            id: inner.id,
+            parent_id: inner.parent_id,
+            name: inner.name.clone(),
+            path: inner.path.clone(),
+            children,
+            is_open: false,
+            shown: true,
+            ..Default::default()
+        }
+    }
+}
 
 #[test]
 fn test_recursive_algorithm() {
