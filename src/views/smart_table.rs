@@ -85,12 +85,12 @@ impl SmartTable {
             .height(Auto);
             //
             List::new(cx, rows, move |cx, row_index, row| {
-                println!("rebuild virtual list");
                 //
                 List::new(cx, headers, move |cx, col_index, _| {
                     HStack::new(cx, move |cx| {
                         (content)(cx, row, col_index);
                     })
+                    .overflow(Overflow::Hidden)
                     .width(Self::widths.index(col_index))
                     .height(Auto);
                 })

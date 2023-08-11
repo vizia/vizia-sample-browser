@@ -74,7 +74,8 @@ fn main() {
         //     })
         //     .collect::<Vec<_>>();
 
-        let mut db = Database::from_directory(Path::new("test_files/").to_path_buf()).unwrap();
+        let mut db =
+            Database::from_directory(Path::new("the-libre-sample-pack/").to_path_buf()).unwrap();
 
         let collections = db.get_all_collections().unwrap();
         let audio_files = db.get_all_audio_files().unwrap();

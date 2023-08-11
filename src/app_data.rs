@@ -32,14 +32,11 @@ impl Model for AppData {
             AppEvent::SetBrowserWidth(width) => self.browser_width = *width,
             AppEvent::SetTableHeight(height) => self.table_height = *height,
             AppEvent::ViewCollection(id) => {
-                println!("selected: {}", id);
                 if let Ok(db) = self.database.lock() {
-                    if let Ok(audio_files) = db.get_all_audio_files() {
-                        println!("ALL {}", audio_files.len());
+                    if let Ok(audio_files) = db.get_child_audio_files(*id) {
                         self.table_rows = audio_files;
                     }
                 }
-                println!("num rows: {}", self.table_rows.len());
             }
         });
     }
