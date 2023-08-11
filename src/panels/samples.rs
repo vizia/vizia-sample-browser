@@ -32,14 +32,56 @@ impl SamplesPanel {
             .height(Auto)
             .class("header");
 
-            SmartTable::new(cx, AppData::table_headers, AppData::table_rows, |cx, row, index| {
-                Label::new(cx, row.then(AudioFile::name))
-                    .width(Stretch(1.0))
-                    .border_color(Color::bisque())
-                    // .border_width(Pixels(1.0))
-                    .child_space(Stretch(1.0))
-                    .child_left(if index == 0 { Pixels(4.0) } else { Stretch(1.0) });
-            });
+            SmartTable::new(
+                cx,
+                AppData::table_headers,
+                AppData::table_rows,
+                |cx, row, col_index| {
+                    match col_index {
+                        // Name
+                        0 => {
+                            Label::new(cx, row.then(AudioFile::name))
+                                .width(Stretch(1.0))
+                                .border_color(Color::bisque())
+                                // .border_width(Pixels(1.0))
+                                .child_space(Stretch(1.0))
+                                .child_left(if col_index == 0 {
+                                    Pixels(4.0)
+                                } else {
+                                    Stretch(1.0)
+                                });
+                        }
+                        // Tags
+                        1 => {}
+                        // Duration
+                        2 => {
+                            Label::new(cx, row.then(AudioFile::duration)).width(Stretch(1.0));
+                        }
+                        // Sample Rate
+                        3 => {
+                            Label::new(cx, row.then(AudioFile::sample_rate)).width(Stretch(1.0));
+                        }
+                        // Bit Depth
+                        4 => {
+                            Label::new(cx, row.then(AudioFile::bit_depth)).width(Stretch(1.0));
+                        }
+                        // BPM
+                        5 => {
+                            Label::new(cx, row.then(AudioFile::bpm).map(|k| format!("{:?}", k)))
+                                .width(Stretch(1.0));
+                        }
+                        // Key
+                        6 => {
+                            Label::new(cx, row.then(AudioFile::key).map(|k| format!("{:?}", k)))
+                                .width(Stretch(1.0));
+                        }
+                        // Size
+                        _ => {
+                            Label::new(cx, row.then(AudioFile::size)).width(Stretch(1.0));
+                        }
+                    }
+                },
+            );
         })
     }
 }
