@@ -6,9 +6,9 @@ use serde::{Deserialize, Serialize};
 pub type AudioFileID = usize;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Data, Lens)]
 pub struct AudioFile {
-    id: AudioFileID,
+    pub id: AudioFileID,
     pub name: String,
-    collection: CollectionID,
+    pub collection: CollectionID,
     duration: f32,
     sample_rate: f32,
     bit_depth: f32,

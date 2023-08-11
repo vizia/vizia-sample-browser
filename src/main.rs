@@ -77,9 +77,10 @@ fn main() {
         let mut db = Database::from_directory(Path::new("test_files/").to_path_buf()).unwrap();
 
         let collections = db.get_all_collections().unwrap();
+        let audio_files = db.get_all_audio_files().unwrap();
         let root = collections.iter().find(|v| v.parent_collection().is_none()).unwrap();
 
-        let root = collections_to_directories(&collections, root.clone());
+        let root = collections_to_directories(&collections, &audio_files, root.clone());
 
         let audio_files = db.get_all_audio_files().unwrap().len();
         println!("num: {}", audio_files);
@@ -136,12 +137,21 @@ fn main() {
     .run();
 }
 
-fn collections_to_directories(collections: &Vec<Collection>, current: Collection) -> Directory {
+fn collections_to_directories(
+    collections: &Vec<Collection>,
+    audio_files: &Vec<AudioFile>,
+    current: Collection,
+) -> Directory {
     let children: Vec<Directory> = collections
         .iter()
         .filter(|v| v.parent_collection() == Some(current.id()))
-        .map(|v| collections_to_directories(collections, v.clone()))
+        .map(|v| collections_to_directories(collections, audio_files, v.clone()))
         .collect();
+
+    let afs: Vec<&AudioFile> =
+        audio_files.iter().filter(|v| v.collection == current.id()).collect();
+
+    println!("{:?} {}", current, afs.len());
 
     Directory {
         id: current.id(),
@@ -150,6 +160,7 @@ fn collections_to_directories(collections: &Vec<Collection>, current: Collection
         path: current.path().clone(),
         shown: true,
         is_open: false,
+        num_files: children.iter().map(|v| v.num_files).sum::<usize>() + afs.len(),
         children,
         ..Default::default()
     }
