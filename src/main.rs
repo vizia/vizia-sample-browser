@@ -78,12 +78,12 @@ fn main() {
 
         let collections = db.get_all_collections().unwrap();
         let audio_files = db.get_all_audio_files().unwrap();
+
         let root = collections.iter().find(|v| v.parent_collection().is_none()).unwrap();
 
         let root = collections_to_directories(&collections, &audio_files, root.clone());
 
         let audio_files = db.get_all_audio_files().unwrap().len();
-        println!("num: {}", audio_files);
 
         AppData {
             browser: BrowserState::new(root),
@@ -150,8 +150,6 @@ fn collections_to_directories(
 
     let afs: Vec<&AudioFile> =
         audio_files.iter().filter(|v| v.collection == current.id()).collect();
-
-    println!("{:?} {}", current, afs.len());
 
     Directory {
         id: current.id(),
