@@ -8,6 +8,7 @@ use vizia::icons::{
 use vizia::prelude::*;
 
 use crate::app_data::AppData;
+use crate::database::prelude::CollectionID;
 use crate::state::browser::directory_derived_lenses::children;
 use crate::state::browser::*;
 use crate::views::{ToggleButton, ToggleButtonModifiers};
@@ -192,6 +193,7 @@ where
 
 pub struct DirectoryItem {
     path: PathBuf,
+    collection: CollectionID,
 }
 
 impl DirectoryItem {
@@ -202,7 +204,8 @@ impl DirectoryItem {
         focused: impl Lens<Target = bool>,
         path: PathBuf,
     ) -> Handle<Self> {
-        Self { path: path.clone() }
+        let id = root.get(cx).id;
+        Self { path: path.clone(), collection: id }
             .build(cx, |cx| {
                 // Arrow Icon
                 Icon::new(cx, ICON_CHEVRON_DOWN)
@@ -219,7 +222,7 @@ impl DirectoryItem {
                     .on_press(move |cx| {
                         cx.emit(BrowserEvent::ToggleDirectory(path.clone()));
                         cx.emit(BrowserEvent::SetFocused(Some(path.clone())));
-                        cx.emit(BrowserEvent::Select(path.clone()));
+                        cx.emit(BrowserEvent::Select(path.clone(), id));
                     })
                     .cursor(CursorIcon::Hand);
 
@@ -287,7 +290,7 @@ impl View for DirectoryItem {
                 if cx.modifiers().contains(Modifiers::CTRL) {
                     cx.emit(BrowserEvent::AddSelection(self.path.clone()));
                 } else {
-                    cx.emit(BrowserEvent::Select(self.path.clone()));
+                    cx.emit(BrowserEvent::Select(self.path.clone(), self.collection));
                 }
             }
 

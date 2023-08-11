@@ -2,6 +2,7 @@ use vizia::icons::{ICON_LIST_SEARCH, ICON_SEARCH};
 use vizia::prelude::*;
 
 use crate::app_data::AppData;
+use crate::database::prelude::AudioFile;
 use crate::views::SmartTable;
 
 pub struct SamplesPanel {}
@@ -31,13 +32,13 @@ impl SamplesPanel {
             .height(Auto)
             .class("header");
 
-            SmartTable::new(cx, AppData::table_headers, AppData::table_rows, |cx, item| {
-                Label::new(cx, item)
+            SmartTable::new(cx, AppData::table_headers, AppData::table_rows, |cx, row, index| {
+                Label::new(cx, row.then(AudioFile::name))
                     .width(Stretch(1.0))
                     .border_color(Color::bisque())
                     // .border_width(Pixels(1.0))
                     .child_space(Stretch(1.0))
-                    .child_left(if item.idx() == 0 { Pixels(4.0) } else { Stretch(1.0) });
+                    .child_left(if index == 0 { Pixels(4.0) } else { Stretch(1.0) });
             });
         })
     }
