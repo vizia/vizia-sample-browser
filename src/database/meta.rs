@@ -1,12 +1,54 @@
+use notify::{RecommendedWatcher, RecursiveMode, Watcher};
+
 use super::prelude::*;
 
 pub trait DatabaseMeta {
+    fn create_watcher(&mut self, cx: &mut Context) -> Result<(), DatabaseError>;
     fn update_database(&mut self);
     fn walk_to_new_tree(&mut self, new_tree: &Vec<DirectoryEntry>);
     fn insert_recursive_directory(&mut self, parent_path: &PathBuf, path: &PathBuf);
 }
 
 impl DatabaseMeta for Database {
+    fn create_watcher(&mut self, cx: &mut Context) -> Result<(), DatabaseError> {
+        let path = self.path.clone();
+        cx.spawn(move |cx| {
+            let (tx, rx) = std::sync::mpsc::channel();
+
+            let mut debouncer =
+                notify_debouncer_full::new_debouncer(Duration::from_millis(500), None, tx).unwrap();
+
+            debouncer.watcher().watch(&path, RecursiveMode::Recursive).unwrap();
+
+            debouncer.cache().add_root(&path, RecursiveMode::Recursive);
+
+            println!("Watcher created succesfully");
+
+            let rx_ref = Arc::new(Mutex::new(rx));
+
+            //
+            loop {
+                match rx_ref.clone().lock().unwrap().recv() {
+                    Ok(res) => {
+                        match res {
+                            Ok(event) => cx.emit(AppEvent::UpdateDirectories),
+                            Err(e) => cx.emit(AppEvent::UpdateDirectoriesError(e)),
+                        };
+                    }
+                    Err(e) => {
+                        println!("UPDATE STOPPED {e:?}");
+                        break;
+                    }
+                }
+            }
+        });
+
+        //
+        // });
+
+        Ok(())
+    }
+
     /// Queries all directories and files of the database path and updates the database
     fn update_database(&mut self) {
         // Create new hash

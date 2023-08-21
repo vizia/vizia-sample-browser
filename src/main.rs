@@ -85,6 +85,8 @@ fn main() {
 
         let audio_files = db.get_all_audio_files().unwrap().len();
 
+        db.create_watcher(cx);
+
         AppData {
             browser: BrowserState::new(root),
             browser_width: 300.0,

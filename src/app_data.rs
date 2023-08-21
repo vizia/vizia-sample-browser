@@ -22,6 +22,8 @@ pub enum AppEvent {
     SetBrowserWidth(f32),
     SetTableHeight(f32),
     ViewCollection(CollectionID),
+    UpdateDirectories,
+    UpdateDirectoriesError(Vec<notify::Error>),
 }
 
 impl Model for AppData {
@@ -40,6 +42,12 @@ impl Model for AppData {
                     }
                 }
                 println!("num rows: {}", self.table_rows.len());
+            }
+            AppEvent::UpdateDirectories => {
+                println!("Update directories");
+            }
+            AppEvent::UpdateDirectoriesError(e) => {
+                println!("Update directories ERROR {:?}", e);
             }
         });
     }

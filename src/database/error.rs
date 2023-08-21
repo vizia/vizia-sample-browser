@@ -4,6 +4,7 @@ pub enum DatabaseError {
     PathNotDirectory,
     RusqliteError(rusqlite::Error),
     IOError(std::io::Error),
+    NotifyError(notify::Error),
 }
 
 impl From<rusqlite::Error> for DatabaseError {
@@ -15,5 +16,11 @@ impl From<rusqlite::Error> for DatabaseError {
 impl From<std::io::Error> for DatabaseError {
     fn from(value: std::io::Error) -> Self {
         Self::IOError(value)
+    }
+}
+
+impl From<notify::Error> for DatabaseError {
+    fn from(value: notify::Error) -> Self {
+        Self::NotifyError(value)
     }
 }
