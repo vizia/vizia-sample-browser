@@ -1,7 +1,7 @@
-use vizia::prelude::*;
-
-use super::{CollectionID, Database, DatabaseConnectionHandle, DatabaseError};
+use super::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use vizia::prelude::*;
 
 pub type AudioFileID = usize;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Data, Lens)]
@@ -18,6 +18,20 @@ pub struct AudioFile {
 }
 
 impl AudioFile {
+    pub fn from_path(path: &PathBuf, id: AudioFileID) -> Option<Self> {
+        let extension = path.extension().map(|v| v.to_str().unwrap()).unwrap_or("");
+
+        if !AUDIO_FILE_EXTENSIONS.contains(&extension) {
+            return None;
+        }
+
+        let name = path.file_name().unwrap().to_str().unwrap();
+
+        let audio_file = AudioFile::new(id, name.to_string(), id, 0.0, 0.0, 0.0, None, None, 0.0);
+
+        Some(audio_file)
+    }
+
     pub fn new(
         id: AudioFileID,
         name: String,
@@ -35,8 +49,10 @@ impl AudioFile {
 
 pub trait DatabaseAudioFileHandler {
     fn get_all_audio_files(&self) -> Result<Vec<AudioFile>, DatabaseError>;
+    fn get_audio_file_by_path(&self, path: &PathBuf) -> Result<AudioFile, DatabaseError>;
     fn get_child_audio_files(&self, parent: CollectionID) -> Result<Vec<AudioFile>, DatabaseError>;
     fn insert_audio_file(&mut self, audio_file: AudioFile) -> Result<(), DatabaseError>;
+    fn remove_audio_file(&mut self, audio_file: AudioFileID) -> Result<(), DatabaseError>;
 }
 
 impl DatabaseAudioFileHandler for Database {
@@ -65,13 +81,14 @@ impl DatabaseAudioFileHandler for Database {
         Err(DatabaseError::ConnectionClosed)
     }
 
-    fn get_child_audio_files(&self, parent: CollectionID) -> Result<Vec<AudioFile>, DatabaseError> {
+    fn get_audio_file_by_path(&self, path: &PathBuf) -> Result<AudioFile, DatabaseError> {
         if let Some(connection) = self.get_connection() {
             let mut query = connection.prepare(
-                "SELECT id, name, collection, duration, sample_rate, bit_depth, bpm, key, size FROM audio_files WHERE collection = (?1)",
+                "SELECT id, name, collection, duration, sample_rate, bit_depth, bpm, key, size FROM audio_files WHERE path = (?1)",
             )?;
 
-            let collections = query.query_map([parent], |row| {
+            let col: AudioFile = query.query_row([path.to_str().unwrap()], |row| {
+                let path: String = row.get(3)?;
                 Ok(AudioFile {
                     id: row.get(0)?,
                     name: row.get(1)?,
@@ -85,7 +102,33 @@ impl DatabaseAudioFileHandler for Database {
                 })
             })?;
 
-            return Ok(collections.map(|v| v.unwrap()).collect());
+            return Ok(col);
+        }
+
+        Err(DatabaseError::ConnectionClosed)
+    }
+
+    fn get_child_audio_files(&self, parent: CollectionID) -> Result<Vec<AudioFile>, DatabaseError> {
+        if let Some(connection) = self.get_connection() {
+            let mut query = connection.prepare(
+                "SELECT id, name, collection, duration, sample_rate, bit_depth, bpm, key, size FROM audio_files WHERE collection = (?1)",
+            )?;
+
+            let audio_files = query.query_map([parent], |row| {
+                Ok(AudioFile {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    collection: row.get(2)?,
+                    duration: row.get(3)?,
+                    sample_rate: row.get(4)?,
+                    bit_depth: row.get(5)?,
+                    bpm: row.get(6)?,
+                    key: row.get(7)?,
+                    size: row.get(8)?,
+                })
+            })?;
+
+            return Ok(audio_files.map(|v| v.unwrap()).collect());
         }
         Err(DatabaseError::ConnectionClosed)
     }
@@ -106,6 +149,14 @@ impl DatabaseAudioFileHandler for Database {
                     audio_file.size,
                 ),
             )?;
+        }
+
+        Ok(())
+    }
+
+    fn remove_audio_file(&mut self, audio_file: AudioFileID) -> Result<(), DatabaseError> {
+        if let Some(connection) = self.get_connection() {
+            connection.execute("DELETE FROM audio_files WHERE id = (?1)", [audio_file])?;
         }
 
         Ok(())

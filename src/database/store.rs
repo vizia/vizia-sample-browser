@@ -1,7 +1,10 @@
-use super::{Database, DatabaseError};
+use super::prelude::*;
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use std::hash::{Hash, Hasher};
+use std::path::Path;
 use std::{
-    collections::HashMap,
+    collections::{hash_map::DefaultHasher, HashMap},
     fs::{create_dir, File},
     path::PathBuf,
 };
@@ -11,23 +14,40 @@ pub const DATABASE_META_DIRECTORY_NAME: &str = ".vsb-meta/";
 pub const DATABASE_DATABASE_NAME: &str = ".vsb-database";
 pub const DATABASE_META_NAME: &str = ".vsb-meta";
 
-pub type Hash = String;
-
 #[derive(Clone, Debug, Serialize, Deserialize, Lens, PartialEq)]
 pub struct DatabaseMetadata {
-    pub(super) map: HashMap<PathBuf, Hash>,
+    pub(super) version: String,
+    pub(super) hash_id: u64,
+    pub(super) last_changed: chrono::DateTime<chrono::Utc>,
+    pub(super) entries: Vec<DirectoryEntry>,
+
+    pub(super) last_collection_id: usize,
+    pub(super) last_audio_file: usize,
 }
 
 impl DatabaseMetadata {
     pub fn new() -> Self {
-        Self { map: HashMap::new() }
+        let mut hasher = DefaultHasher::new();
+
+        let tree = build_dir_trees_from_directory(&Path::new("test_files/").to_path_buf());
+
+        for entry in tree.iter() {
+            entry.hash(&mut hasher);
+        }
+
+        Self {
+            version: env!("CARGO_PKG_VERSION").to_string(),
+            hash_id: hasher.finish(),
+            last_changed: Utc::now(),
+            entries: tree,
+
+            last_collection_id: 0,
+            last_audio_file: 0,
+        }
     }
 
     pub fn need_update(&self, other: &Self) -> bool {
-        let mut self_collect: Vec<PathBuf> = self.map.keys().map(|v| v.clone()).collect();
-        let mut other_collect: Vec<PathBuf> = other.map.keys().map(|v| v.clone()).collect();
-
-        self_collect.len() != other_collect.len() || self_collect != other_collect
+        true
     }
 }
 
@@ -71,12 +91,6 @@ pub trait DatabaseStore {
     }
 
     //
-    fn initialize_or_create_stores(&self) -> Result<(), DatabaseError> {
-        create_dir(self.get_meta_directory_path());
-
-        Ok(())
-    }
-
     fn store_metadata(&self);
     fn retreive_metadata(&mut self);
 }

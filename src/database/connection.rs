@@ -1,16 +1,14 @@
+use super::prelude::*;
+use rusqlite::Connection;
 use std::fs::File;
 
-use rusqlite::Connection;
-
-use super::{Database, DatabaseError, DatabaseStore};
-
-pub trait DatabaseConnectionHandle {
+pub trait DatabaseConnection {
     fn get_connection(&self) -> Option<&Connection>;
     fn open_connection(&mut self) -> Result<(), DatabaseError>;
     fn close_connection(&mut self) -> Result<(), DatabaseError>;
 }
 
-impl DatabaseConnectionHandle for Database {
+impl DatabaseConnection for Database {
     fn get_connection(&self) -> Option<&Connection> {
         self.conn.as_ref()
     }

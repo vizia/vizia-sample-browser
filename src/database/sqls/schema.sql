@@ -4,7 +4,10 @@ CREATE TABLE collections (
     name                nvarchar(255),
     path                nvarchar(255),
 
-    FOREIGN KEY(parent_collection) REFERENCES collections(id)
+    CONSTRAINT fk_coll_coll 
+        FOREIGN KEY(parent_collection) 
+        REFERENCES collections(id)
+        ON DELETE CASCADE
 );
 
 CREATE TABLE audio_files (
@@ -18,7 +21,10 @@ CREATE TABLE audio_files (
     key                 integer NULL,
     size                integer,
 
-    FOREIGN KEY(collection) REFERENCES collections(id)
+    CONSTRAINT fk_af_coll 
+        FOREIGN KEY(collection) 
+        REFERENCES collections(id)
+        ON DELETE CASCADE
 );
 
 CREATE TABLE tags (
@@ -33,6 +39,12 @@ CREATE TABLE audio_files_tags (
 
     PRIMARY KEY (audio_file, tag)
 
-    FOREIGN KEY(audio_file) REFERENCES audio_files(id)
-    FOREIGN KEY(tag) REFERENCES tags(id)
+    CONSTRAINT fk_aft_af 
+        FOREIGN KEY(audio_file) 
+        REFERENCES audio_files(id) 
+        ON DELETE CASCADE
+    CONSTRAINT fk_aft_tag 
+        FOREIGN KEY(tag) 
+        REFERENCES tags(id) 
+        ON DELETE CASCADE
 );
