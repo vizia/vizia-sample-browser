@@ -94,11 +94,9 @@ impl DatabaseMeta for Database {
         let mut child_directories = Vec::new();
         let mut child_files = Vec::new();
 
-        read_dir.filter(|v| v.is_ok()).map(|v| v.unwrap()).for_each(|v| {
-            match v.metadata().unwrap().is_dir() {
-                true => child_directories.push(v),
-                false => child_files.push(v),
-            }
+        read_dir.filter_map(|v| v.ok()).for_each(|v| match v.metadata().unwrap().is_dir() {
+            true => child_directories.push(v),
+            false => child_files.push(v),
         });
 
         //
@@ -111,7 +109,7 @@ impl DatabaseMeta for Database {
         self.meta.last_collection_id += 1;
         let id = self.meta.last_collection_id;
 
-        let parent_col = self.get_collection_by_path(&parent_path).unwrap();
+        let parent_col = self.get_collection_by_path(parent_path).unwrap();
 
         let collection = Collection::new(id, Some(parent_col.id()), name, path.clone());
 

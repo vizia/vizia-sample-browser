@@ -73,14 +73,8 @@ impl View for PopupMenu {
     }
 
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
-        event.map(|e, em| match e {
-            // PopupEvent::SetMenu(entity, menu, meta) => {
-            //     self.target_entity = Some(*entity);
-            //     self.meta = meta.clone();
-
-            //     em.consume();
-            // }
-            PopupEvent::Show => {
+        event.map(|e, em| {
+            if let PopupEvent::Show = e {
                 // if self.shown {
                 //     cx.emit(PopupEvent::Hide);
                 //     return;
@@ -132,10 +126,7 @@ impl View for PopupMenu {
                 cx.set_translate((Pixels(desired_pos.0 / scale), Pixels(desired_pos.1 / scale)));
                 cx.needs_redraw();
                 // self.shown = true;
-            } // PopupEvent::Hide => {
-            //     self.shown = false;
-            // }
-            _ => {}
+            }
         });
     }
 }

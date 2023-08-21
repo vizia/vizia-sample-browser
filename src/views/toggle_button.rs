@@ -48,15 +48,13 @@ impl View for ToggleButton {
                 cx.release();
             }
 
-            WindowEvent::ActionRequest(action) => match action.action {
-                Action::Default => {
+            WindowEvent::ActionRequest(action) => {
+                if let Action::Default = action.action {
                     if let Some(callback) = &self.on_toggle {
                         (callback)(cx);
                     }
                 }
-
-                _ => {}
-            },
+            }
 
             _ => {}
         });

@@ -62,13 +62,13 @@ pub trait DatabaseStore {
     }
 
     fn get_database_path(&self) -> PathBuf {
-        let mut path = self.get_meta_directory_path().clone();
+        let mut path = self.get_meta_directory_path();
         path.push(DATABASE_DATABASE_NAME);
         path
     }
 
     fn get_meta_path(&self) -> PathBuf {
-        let mut path = self.get_meta_directory_path().clone();
+        let mut path = self.get_meta_directory_path();
         path.push(DATABASE_META_NAME);
         path
     }

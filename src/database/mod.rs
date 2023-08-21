@@ -62,7 +62,7 @@ fn directory_exists(path: &PathBuf) -> bool {
 }
 
 pub const DATABASE_FILE_NAME: &str = ".database.vsb";
-pub const AUDIO_FILE_EXTENSIONS: [&'static str; 1] = ["wav"];
+pub const AUDIO_FILE_EXTENSIONS: [&str; 1] = ["wav"];
 
 #[derive(Debug, Lens)]
 pub struct Database {
@@ -128,17 +128,15 @@ impl Database {
             let mut child_directories = VecDeque::new();
             let mut child_files = Vec::new();
 
-            read_dir.filter(|v| v.is_ok()).map(|v| v.unwrap()).for_each(|v| {
-                match v.metadata().unwrap().is_dir() {
-                    true => child_directories.push_back(v),
-                    false => child_files.push(v),
-                }
+            read_dir.filter_map(|v| v.ok()).for_each(|v| match v.metadata().unwrap().is_dir() {
+                true => child_directories.push_back(v),
+                false => child_files.push(v),
             });
 
             //
 
             let name = path.file_name().unwrap().to_str().unwrap().to_string();
-            if name.starts_with(".") {
+            if name.starts_with('.') {
                 continue;
             }
 

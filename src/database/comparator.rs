@@ -5,7 +5,7 @@ use std::hash::{Hash, Hasher};
 use std::{collections::VecDeque, fmt::Debug, fs::read_dir, path::PathBuf};
 use vizia::prelude::*;
 
-pub static IGNORE_DIRS: [&'static str; 1] = [".vsb-meta"];
+pub static IGNORE_DIRS: [&str; 1] = [".vsb-meta"];
 
 pub type DirectoryEntryID = usize;
 #[derive(Clone, Debug, Serialize, Deserialize, Lens, Eq)]
@@ -107,15 +107,14 @@ pub fn build_dir_trees_from_directory(dir: &PathBuf) -> Vec<DirectoryEntry> {
         if next_dir.is_dir() {
             read_dir(next_dir)
                 .unwrap()
-                .filter(|v| v.is_ok())
-                .map(|v| v.unwrap())
+                .filter_map(|v| v.ok())
                 .filter(|v| !IGNORE_DIRS.contains(&v.path().file_name().unwrap().to_str().unwrap()))
                 .sorted_by(|a, b| a.file_name().cmp(&b.file_name()))
                 .for_each(|v| {
                     dir_stack.push_back((
                         v.path(),
                         Some(dir.id),
-                        dir.parent.clone(),
+                        dir.parent,
                         Some(dir.path.clone()),
                     ))
                 });

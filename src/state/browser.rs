@@ -10,7 +10,7 @@ use vizia::prelude::*;
 
 use self::browser_state_derived_lenses::libraries;
 
-#[derive(Debug, Lens, Clone, Data)]
+#[derive(Debug, Lens, Clone, Data, Default)]
 pub struct BrowserState {
     pub libraries: Vec<Directory>,
     pub selected: HashSet<PathBuf>,
@@ -58,19 +58,6 @@ pub struct Directory {
     pub num_files: usize,
     pub match_indices: Vec<usize>,
     pub shown: bool,
-}
-
-impl Default for BrowserState {
-    fn default() -> Self {
-        Self {
-            libraries: Vec::new(),
-            selected: HashSet::new(),
-            focused: None,
-            search_text: String::new(),
-            filter_search: false,
-            search_case_sensitive: false,
-        }
-    }
 }
 
 impl Model for BrowserState {
@@ -123,7 +110,7 @@ impl Model for BrowserState {
 
             BrowserEvent::CollapseDirectory => {
                 if let Some(focused) = &self.focused {
-                    if is_collapsed(&mut self.libraries[0], focused) {
+                    if is_collapsed(&self.libraries[0], focused) {
                         self.focused = focused.parent().map(|p| p.to_owned());
                     } else {
                         set_expand_directory(&mut self.libraries[0], focused, false);
@@ -255,12 +242,7 @@ fn recursive_prev<'a>(
     RetItem::NotFound(prev)
 }
 
-fn search<'a>(
-    root: &'a mut Directory,
-    search_text: &String,
-    filter: bool,
-    ignore_case: bool,
-) -> bool {
+fn search(root: &mut Directory, search_text: &String, filter: bool, ignore_case: bool) -> bool {
     let mut parent_is_shown = !filter;
     let mut matcher = SkimMatcherV2::default();
 
@@ -284,10 +266,10 @@ fn search<'a>(
 
     root.shown = parent_is_shown | child_is_shown;
 
-    return root.shown;
+    root.shown
 }
 
-fn is_collapsed<'a>(root: &'a Directory, dir: &PathBuf) -> bool {
+fn is_collapsed(root: &Directory, dir: &PathBuf) -> bool {
     if root.path == *dir {
         if !root.is_open {
             return true;

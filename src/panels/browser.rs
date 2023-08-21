@@ -61,7 +61,7 @@ impl BrowserPanel {
             // Search Box
             HStack::new(cx, |cx| {
                 Textbox::new(cx, AppData::browser.then(BrowserState::search_text))
-                    .on_edit(|cx, text| cx.emit(BrowserEvent::Search(text.clone())))
+                    .on_edit(|cx, text| cx.emit(BrowserEvent::Search(text)))
                     .placeholder(Localized::new("search"))
                     .width(Stretch(1.0))
                     .bind(BrowserPanel::search_shown, |mut handle, shown| {
