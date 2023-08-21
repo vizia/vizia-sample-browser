@@ -1,11 +1,10 @@
-use std::sync::{Arc, Mutex};
-
-use vizia::prelude::*;
-
+use crate::collections_to_directories;
 use crate::{
-    database::prelude::{AudioFile, CollectionID, Database, DatabaseAudioFileHandler},
+    database::prelude::*,
     state::browser::{BrowserState, Directory},
 };
+use std::sync::{Arc, Mutex};
+use vizia::prelude::*;
 
 #[derive(Lens)]
 pub struct AppData {
@@ -44,6 +43,21 @@ impl Model for AppData {
                 println!("num rows: {}", self.table_rows.len());
             }
             AppEvent::UpdateDirectories => {
+                let mut db = self.database.lock().unwrap();
+
+                db.update_database();
+
+                let collections = db.get_all_collections().unwrap();
+                let audio_files = db.get_all_audio_files().unwrap();
+
+                let root = collections.iter().find(|v| v.parent_collection().is_none()).unwrap();
+
+                let root = collections_to_directories(&collections, &audio_files, root.clone());
+
+                let audio_files = db.get_all_audio_files().unwrap().len();
+
+                self.browser.libraries = vec![root];
+
                 println!("Update directories");
             }
             AppEvent::UpdateDirectoriesError(e) => {

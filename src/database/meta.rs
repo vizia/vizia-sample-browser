@@ -16,7 +16,8 @@ impl DatabaseMeta for Database {
             let (tx, rx) = std::sync::mpsc::channel();
 
             let mut debouncer =
-                notify_debouncer_full::new_debouncer(Duration::from_millis(500), None, tx).unwrap();
+                notify_debouncer_full::new_debouncer(Duration::from_millis(2000), None, tx)
+                    .unwrap();
 
             debouncer.watcher().watch(&path, RecursiveMode::Recursive).unwrap();
 

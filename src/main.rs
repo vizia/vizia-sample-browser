@@ -139,7 +139,7 @@ fn main() {
     .run();
 }
 
-fn collections_to_directories(
+pub fn collections_to_directories(
     collections: &Vec<Collection>,
     audio_files: &Vec<AudioFile>,
     current: Collection,
