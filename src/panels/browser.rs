@@ -33,15 +33,10 @@ impl BrowserPanel {
                 // Panel Icon
                 Icon::new(cx, ICON_FOLDER_OPEN).class("panel-icon");
 
-                // SplitButton::new(cx, |cx| {
-                //     Label::new(cx, "Sorting");
-                //     Label::new(cx, "Alphabetical Order");
-                //     Label::new(cx, "Number of Samples");
-                // });
-
                 // Search Toggle Button
                 ToggleButton::new(cx, BrowserPanel::search_shown, |cx| Icon::new(cx, ICON_SEARCH))
                     .on_toggle(|cx| cx.emit(BrowserEvent::ToggleShowSearch))
+                    .name(Localized::new("toggle-search"))
                     .tooltip(|cx| {
                         Tooltip::new(cx, |cx| {
                             Label::new(cx, Localized::new("toggle-search"));
@@ -73,6 +68,7 @@ impl BrowserPanel {
                     .on_toggle(|cx| cx.emit(BrowserEvent::ToggleSearchCaseSensitivity))
                     .size(Pixels(20.0))
                     .class("filter-search")
+                    .name(Localized::new("match-case"))
                     .tooltip(|cx| {
                         Tooltip::new(cx, |cx| {
                             Label::new(cx, Localized::new("match-case"));
@@ -88,6 +84,7 @@ impl BrowserPanel {
                     .on_toggle(|cx| cx.emit(BrowserEvent::ToggleSearchFilter))
                     .size(Pixels(20.0))
                     .class("filter-search")
+                    .name(Localized::new("filter"))
                     .tooltip(|cx| {
                         Tooltip::new(cx, |cx| {
                             Label::new(cx, Localized::new("filter"));

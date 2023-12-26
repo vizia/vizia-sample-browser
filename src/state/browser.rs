@@ -1,6 +1,6 @@
 //! GUI state used for the browser panel
 
-use crate::app_data::{AppData, AppEvent};
+use super::app_data::{AppData, AppEvent};
 use crate::database::prelude::*;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
