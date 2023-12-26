@@ -1,3 +1,5 @@
+//! GUI state used for the browser panel
+
 use crate::app_data::{AppData, AppEvent};
 use crate::database::prelude::*;
 use fuzzy_matcher::skim::SkimMatcherV2;
@@ -10,7 +12,7 @@ use vizia::prelude::*;
 
 use self::browser_state_derived_lenses::libraries;
 
-#[derive(Debug, Lens, Clone, Data)]
+#[derive(Debug, Lens, Clone, Default)]
 pub struct BrowserState {
     pub libraries: Vec<Directory>,
     pub selected: HashSet<PathBuf>,
@@ -43,8 +45,6 @@ pub enum BrowserEvent {
     ToggleShowSearch,
     ToggleSearchFilter,
     ToggleSearchCaseSensitivity,
-    ShowTree,
-    ShowList,
 }
 
 #[derive(Debug, Clone, Data, Lens, Default)]
@@ -58,19 +58,6 @@ pub struct Directory {
     pub num_files: usize,
     pub match_indices: Vec<usize>,
     pub shown: bool,
-}
-
-impl Default for BrowserState {
-    fn default() -> Self {
-        Self {
-            libraries: Vec::new(),
-            selected: HashSet::new(),
-            focused: None,
-            search_text: String::new(),
-            filter_search: false,
-            search_case_sensitive: false,
-        }
-    }
 }
 
 impl Model for BrowserState {

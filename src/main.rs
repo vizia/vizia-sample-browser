@@ -45,7 +45,7 @@ fn main() {
 
         cx.add_translation(langid!("es"), include_str!("../resources/translations/es/browser.ftl"));
 
-        cx.emit(EnvironmentEvent::SetThemeMode(ThemeMode::DarkMode));
+        cx.emit(EnvironmentEvent::SetThemeMode(AppTheme::BuiltIn(ThemeMode::DarkMode)));
 
         // Uncomment to test in Spanish
         // cx.emit(EnvironmentEvent::SetLocale(langid!("es")));
@@ -55,24 +55,6 @@ fn main() {
                 .iter_mut()
                 .map(|v| v.to_string())
                 .collect::<Vec<_>>();
-
-        // let rows = (0..20)
-        //     .map(|row| {
-        //         vec![
-        //             &format!("MSL_snare_{:02}", row),
-        //             "?",
-        //             "5.3 sec",
-        //             "44100",
-        //             "24",
-        //             "?",
-        //             "?",
-        //             "2.5MB",
-        //         ]
-        //         .iter_mut()
-        //         .map(|v| v.to_string())
-        //         .collect::<Vec<_>>()
-        //     })
-        //     .collect::<Vec<_>>();
 
         let mut db =
             Database::from_directory(Path::new("the-libre-sample-pack/").to_path_buf()).unwrap();
@@ -88,11 +70,13 @@ fn main() {
 
         AppData {
             browser: BrowserState::new(root),
+            tags: TagsState::default(),
             browser_width: 300.0,
             table_height: 300.0,
             table_headers: headers,
             table_rows: Vec::new(),
             search_text: String::new(),
+            selected_sample: None,
             //
             database: Arc::new(Mutex::new(db)),
         }
@@ -105,12 +89,11 @@ fn main() {
                 ResizeStackDirection::Right,
                 |cx, width| cx.emit(AppEvent::SetBrowserWidth(width)),
                 |cx| {
-                    VStack::new(cx, |cx| {
-                        BrowserPanel::new(cx);
-                    })
-                    .class("panel");
+                    BrowserPanel::new(cx);
+                    TagsPanel::new(cx);
                 },
             )
+            .row_between(Pixels(1.0))
             .class("browser");
 
             VStack::new(cx, |cx| {
@@ -124,13 +107,12 @@ fn main() {
                         SamplesPanel::new(cx);
                     },
                 );
-                // Sample Player
-                Element::new(cx).background_color(Color::from("#323232"));
+                // Waveform Panel
+                WavePanel::new(cx);
             })
-            .row_between(Pixels(2.0));
+            .row_between(Pixels(1.0));
         })
-        .background_color(Color::from("#181818"))
-        .col_between(Pixels(2.0))
+        .col_between(Pixels(1.0))
         .size(Stretch(1.0));
     })
     .title("Vizia Sample Browser")

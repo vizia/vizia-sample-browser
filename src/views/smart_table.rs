@@ -60,6 +60,7 @@ impl SmartTable {
         }
         .build(cx, |cx| {
             VStack::new(cx, |cx| {
+                // Headers
                 List::new(cx, headers, |cx, col_index, item| {
                     HStack::new(cx, move |cx| {
                         Label::new(cx, item).class("column-heading").hoverable(false);
@@ -73,6 +74,7 @@ impl SmartTable {
                 .width(Stretch(1.0))
                 .layout_type(LayoutType::Row);
 
+                // Resize Handles
                 List::new(cx, SmartTable::limiters, |cx, idx, limiter| {
                     ResizeHandle::new(cx, limiter, idx, true)
                         // .background_color(Color::red())
@@ -90,15 +92,17 @@ impl SmartTable {
                     HStack::new(cx, move |cx| {
                         (content)(cx, row, col_index);
                     })
+                    .class("column")
                     .overflow(Overflow::Hidden)
                     .width(Self::widths.index(col_index))
-                    .height(Auto);
+                    .height(Pixels(32.0));
                 })
                 .class("row")
                 .toggle_class("odd", row_index % 2 == 0)
                 .width(Stretch(1.0))
                 .layout_type(LayoutType::Row);
             })
+            .class("row-list")
             .width(Stretch(1.0));
 
             cx.emit(SmartTableEvent::Initialize);
@@ -180,7 +184,7 @@ impl View for SmartTable {
             SmartTableEvent::SetColWidth(index, width) => {
                 if *width > CELL_MIN_SIZE_PX {
                     let current_width = self.widths[*index].to_px(0.0, 0.0);
-                    if let Some(next_width) = self.widths.get(index + 1) {
+                    if let Some(next_width) = self.widths.as_slice().get(index + 1) {
                         let total_width = current_width + next_width.to_px(0.0, 0.0);
                         let new_next_width = total_width - *width;
                         if new_next_width < CELL_MIN_SIZE_PX {

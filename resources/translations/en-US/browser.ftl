@@ -1,3 +1,4 @@
 search = Search
 filter = Filter
-match-case = Match Case
+match-case = Match case
+toggle-search = Show/Hide search
