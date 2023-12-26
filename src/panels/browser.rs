@@ -1,3 +1,5 @@
+//! Browser panel
+
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -11,17 +13,15 @@ use crate::app_data::AppData;
 use crate::database::prelude::CollectionID;
 use crate::state::browser::directory_derived_lenses::children;
 use crate::state::browser::*;
-use crate::views::{ToggleButton, ToggleButtonModifiers};
 
 #[derive(Lens)]
 pub struct BrowserPanel {
     search_shown: bool,
-    tree_view: bool,
 }
 
 impl BrowserPanel {
     pub fn new(cx: &mut Context) -> Handle<Self> {
-        Self { search_shown: true, tree_view: true }.build(cx, |cx| {
+        Self { search_shown: true }.build(cx, |cx| {
             Keymap::from(vec![(
                 KeyChord::new(Modifiers::CTRL, Code::KeyF),
                 KeymapEntry::new((), |cx| cx.emit(BrowserEvent::ToggleShowSearch)),
@@ -33,28 +33,20 @@ impl BrowserPanel {
                 // Panel Icon
                 Icon::new(cx, ICON_FOLDER_OPEN).class("panel-icon");
 
-                // List/Tree Toggle Buttons
-                HStack::new(cx, |cx| {
-                    Button::new(
-                        cx,
-                        |cx| cx.emit(BrowserEvent::ShowTree),
-                        |cx| Icon::new(cx, ICON_LIST_TREE),
-                    )
-                    .checked(BrowserPanel::tree_view);
-
-                    Button::new(
-                        cx,
-                        |cx| cx.emit(BrowserEvent::ShowList),
-                        |cx| Icon::new(cx, ICON_LIST),
-                    )
-                    .checked(BrowserPanel::tree_view.map(|flag| !flag));
-                })
-                .class("button-group")
-                .width(Auto);
+                // SplitButton::new(cx, |cx| {
+                //     Label::new(cx, "Sorting");
+                //     Label::new(cx, "Alphabetical Order");
+                //     Label::new(cx, "Number of Samples");
+                // });
 
                 // Search Toggle Button
                 ToggleButton::new(cx, BrowserPanel::search_shown, |cx| Icon::new(cx, ICON_SEARCH))
-                    .on_toggle(|cx| cx.emit(BrowserEvent::ToggleShowSearch));
+                    .on_toggle(|cx| cx.emit(BrowserEvent::ToggleShowSearch))
+                    .tooltip(|cx| {
+                        Tooltip::new(cx, |cx| {
+                            Label::new(cx, Localized::new("toggle-search"));
+                        })
+                    });
             })
             .class("header");
 
@@ -82,7 +74,9 @@ impl BrowserPanel {
                     .size(Pixels(20.0))
                     .class("filter-search")
                     .tooltip(|cx| {
-                        Label::new(cx, Localized::new("match-case"));
+                        Tooltip::new(cx, |cx| {
+                            Label::new(cx, Localized::new("match-case"));
+                        })
                     });
 
                     // Filter Results Toggle Button
@@ -95,7 +89,9 @@ impl BrowserPanel {
                     .size(Pixels(20.0))
                     .class("filter-search")
                     .tooltip(|cx| {
-                        Label::new(cx, Localized::new("filter"));
+                        Tooltip::new(cx, |cx| {
+                            Label::new(cx, Localized::new("filter"));
+                        })
                     });
                 })
                 .position_type(PositionType::SelfDirected)
@@ -128,11 +124,11 @@ impl BrowserPanel {
                 );
             });
 
-            // Footer
-            HStack::new(cx, |cx| {
-                Label::new(cx, "550 samples in 34 folders");
-            })
-            .class("footer");
+            // // Footer
+            // HStack::new(cx, |cx| {
+            //     Label::new(cx, "550 samples in 34 folders");
+            // })
+            // .class("footer");
         })
     }
 }
@@ -145,9 +141,6 @@ impl View for BrowserPanel {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|browser_event, _| match browser_event {
             BrowserEvent::ToggleShowSearch => self.search_shown ^= true,
-
-            BrowserEvent::ShowTree => self.tree_view = true,
-            BrowserEvent::ShowList => self.tree_view = false,
             _ => {}
         });
 
@@ -234,7 +227,7 @@ impl DirectoryItem {
                     ),
                 )
                 .class("dir-icon")
-                .cursor(CursorIcon::Hand)
+                .hoverable(false)
                 .checked(selected);
 
                 // Directory name
@@ -260,16 +253,15 @@ impl DirectoryItem {
                 "search-match",
                 root.then(Directory::match_indices).map(|idx| !idx.is_empty()),
             )
-        // TODO
-        // .tooltip(|cx| {
-        //     Tooltip::new(cx, |cx| {
-        //         Label::new(
-        //             cx,
-        //             root.then(Directory::path)
-        //                 .map(|path| path.as_os_str().to_str().unwrap().to_owned()),
-        //         );
-        //     });
-        // })
+            .tooltip(|cx| {
+                Tooltip::new(cx, |cx| {
+                    Label::new(
+                        cx,
+                        root.then(Directory::path)
+                            .map(|path| path.as_os_str().to_str().unwrap().to_owned()),
+                    );
+                })
+            })
     }
 }
 
