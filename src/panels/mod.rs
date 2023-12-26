@@ -7,5 +7,5 @@ pub use samples::*;
 pub mod tags;
 pub use tags::*;
 
-pub mod waveview;
-pub use waveview::*;
+pub mod wave;
+pub use wave::*;

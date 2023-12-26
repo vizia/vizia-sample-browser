@@ -3,3 +3,6 @@ pub use resizable_stack::*;
 
 pub mod smart_table;
 pub use smart_table::*;
+
+pub mod waveview;
+pub use waveview::*;

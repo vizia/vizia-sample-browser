@@ -1,6 +1,8 @@
 #![allow(unused)] // Disable stupid warnings for now
 
 use app_data::AppData;
+use basedrop::Collector;
+use cpal::traits::StreamTrait;
 use itertools::Itertools;
 use rusqlite::Connection;
 use std::{
@@ -27,13 +29,31 @@ use panels::*;
 mod views;
 use views::*;
 
-mod app_data;
-use app_data::*;
+mod engine;
+use engine::*;
 
 mod popup_menu;
 
 fn main() {
-    Application::new(|cx| {
+    // Initialize gc
+    let collector = Collector::new();
+
+    // Create the sample player and controller
+    let (mut player, mut controller) = sample_player(&collector);
+
+    // Initialize state and begin the stream
+    std::thread::spawn(move || {
+        let stream = audio_stream(move |mut context| {
+            player.advance(&mut context);
+        });
+
+        // TODO - handle error
+        stream.play();
+
+        std::thread::park();
+    });
+
+    Application::new(move |cx| {
         // Add resources
         cx.add_stylesheet(include_style!("resources/themes/style.css"))
             .expect("Failed to load stylesheet");
@@ -69,6 +89,7 @@ fn main() {
         let audio_files = db.get_all_audio_files().unwrap().len();
 
         AppData {
+            // GUI State
             browser: BrowserState::new(root),
             tags: TagsState::default(),
             browser_width: 300.0,
@@ -77,10 +98,23 @@ fn main() {
             table_rows: Vec::new(),
             search_text: String::new(),
             selected_sample: None,
-            //
+
+            // Database
             database: Arc::new(Mutex::new(db)),
+
+            // Audio Engine
+            collector,
+            controller,
+
+            waveform: Waveform::new(),
+            zoom_level: 8,
+            start: 0,
         }
         .build(cx);
+
+        cx.emit(AppEvent::LoadSample(String::from(
+            "/Users/gatkinson/Rust/vizia-sample-browser/the-libre-sample-pack/drums/one shot/kicks/couch kick 1 @TeaBoi.wav",
+        )));
 
         HStack::new(cx, |cx| {
             ResizableStack::new(
