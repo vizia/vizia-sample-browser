@@ -45,7 +45,7 @@ impl SmartTable {
         R: Data,
         T1: Data + ToStringLocalized,
         // T2: Data + ToStringLocalized,
-        F: 'static + Copy + Fn(&mut Context, Index<L2, R>, usize),
+        F: 'static + Copy + Fn(&mut Context, MapRef<L2, R>, usize),
     {
         let num_cols = headers.map(|h| h.len()).get(cx);
 
@@ -54,18 +54,19 @@ impl SmartTable {
             initialized: false,
             shown: vec![true; num_cols],
             limiters: vec![0.0; num_cols - 1],
-            widths: vec![Stretch(1.0); num_cols],
+            widths: vec![Pixels(100.0); num_cols],
             // data: data.get(cx),
             show_menu: None,
         }
         .build(cx, |cx| {
             VStack::new(cx, |cx| {
+                // Headers
                 List::new(cx, headers, |cx, col_index, item| {
                     HStack::new(cx, move |cx| {
                         Label::new(cx, item).class("column-heading").hoverable(false);
                     })
                     .hoverable(false)
-                    .width(Self::widths.index(col_index))
+                    .width(Self::widths.idx(col_index))
                     .height(Auto);
                 })
                 .hoverable(true)
@@ -73,6 +74,7 @@ impl SmartTable {
                 .width(Stretch(1.0))
                 .layout_type(LayoutType::Row);
 
+                // Resize Handles
                 List::new(cx, SmartTable::limiters, |cx, idx, limiter| {
                     ResizeHandle::new(cx, limiter, idx, true)
                         // .background_color(Color::red())
@@ -85,24 +87,25 @@ impl SmartTable {
             .height(Auto);
             //
             List::new(cx, rows, move |cx, row_index, row| {
-                println!("rebuild virtual list");
                 //
                 List::new(cx, headers, move |cx, col_index, _| {
                     HStack::new(cx, move |cx| {
                         (content)(cx, row, col_index);
                     })
-                    .width(Self::widths.index(col_index))
-                    .height(Auto);
+                    .class("column")
+                    .overflow(Overflow::Hidden)
+                    .width(Self::widths.idx(col_index))
+                    .height(Pixels(32.0));
                 })
                 .class("row")
                 .toggle_class("odd", row_index % 2 == 0)
                 .width(Stretch(1.0))
                 .layout_type(LayoutType::Row);
             })
+            .class("row-list")
             .width(Stretch(1.0));
-
-            cx.emit(SmartTableEvent::Initialize);
         })
+        .on_build(|cx| cx.emit(SmartTableEvent::Initialize))
         .toggle_class("dragging", SmartTable::dragging.map(|dragging| dragging.is_some()))
 
         // PopupMenu::new(cx, SmartTable::show_menu, |cx| {
@@ -145,14 +148,14 @@ impl View for SmartTable {
                     self.initialized = true;
 
                     // Convert from Stretch units to pixels for each portion.
-                    let bounds = cx.bounds();
+                    // let bounds = cx.bounds();
 
-                    let w = bounds.w / cx.scale_factor();
+                    // let w = bounds.w / cx.scale_factor();
 
-                    let stretch_width = w / self.widths.len() as f32;
-                    for size in self.widths.iter_mut() {
-                        *size = Pixels(stretch_width);
-                    }
+                    // let stretch_width = w / self.widths.len() as f32;
+                    // for size in self.widths.iter_mut() {
+                    //     *size = Pixels(stretch_width);
+                    // }
 
                     let mut acc = 0.0;
                     for (i, l) in self.limiters.iter_mut().enumerate() {
@@ -180,7 +183,7 @@ impl View for SmartTable {
             SmartTableEvent::SetColWidth(index, width) => {
                 if *width > CELL_MIN_SIZE_PX {
                     let current_width = self.widths[*index].to_px(0.0, 0.0);
-                    if let Some(next_width) = self.widths.get(index + 1) {
+                    if let Some(next_width) = self.widths.as_slice().get(index + 1) {
                         let total_width = current_width + next_width.to_px(0.0, 0.0);
                         let new_next_width = total_width - *width;
                         if new_next_width < CELL_MIN_SIZE_PX {

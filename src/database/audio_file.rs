@@ -1,4 +1,6 @@
-use super::prelude::*;
+use vizia::prelude::*;
+
+use super::{CollectionID, Database, DatabaseConnectionHandle, DatabaseError};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use vizia::prelude::*;
@@ -9,12 +11,12 @@ pub struct AudioFile {
     pub id: AudioFileID,
     pub name: String,
     pub collection: CollectionID,
-    duration: f32,
-    sample_rate: f32,
-    bit_depth: f32,
-    bpm: Option<f32>,
-    key: Option<f32>,
-    size: f32,
+    pub duration: f32,
+    pub sample_rate: f32,
+    pub bit_depth: f32,
+    pub bpm: Option<f32>,
+    pub key: Option<f32>,
+    pub size: f32,
 }
 
 impl AudioFile {

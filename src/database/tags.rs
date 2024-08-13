@@ -64,7 +64,14 @@ impl DatabaseTags for Database {
     }
 
     fn insert_tag(&mut self, tag: Tag) -> Result<(), DatabaseError> {
-        todo!()
+        if let Some(connection) = self.get_connection() {
+            connection.execute(
+                "INSERT INTO tags (id, name, color) VALUES (?1, ?2, ?3)",
+                (tag.id, tag.name, tag.color),
+            )?;
+        }
+
+        Ok(())
     }
 
     fn assign_tag_to_audio_file(
@@ -72,7 +79,14 @@ impl DatabaseTags for Database {
         tag: TagID,
         audio_file: AudioFileID,
     ) -> Result<(), DatabaseError> {
-        todo!()
+        if let Some(connection) = self.get_connection() {
+            connection.execute(
+                "INSERT INTO audio_files_tags (audio_file, tags) VALUES (?1, ?2)",
+                (audio_file, tag),
+            )?;
+        }
+
+        Ok(())
     }
 }
 

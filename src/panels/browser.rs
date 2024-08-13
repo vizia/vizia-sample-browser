@@ -1,3 +1,5 @@
+//! Browser panel
+
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -8,20 +10,18 @@ use vizia::icons::{
 use vizia::prelude::*;
 
 use crate::app_data::AppData;
+use crate::data::browser::directory_derived_lenses::children;
+use crate::data::browser::*;
 use crate::database::prelude::CollectionID;
-use crate::state::browser::directory_derived_lenses::children;
-use crate::state::browser::*;
-use crate::views::{ToggleButton, ToggleButtonModifiers};
 
 #[derive(Lens)]
 pub struct BrowserPanel {
     search_shown: bool,
-    tree_view: bool,
 }
 
 impl BrowserPanel {
     pub fn new(cx: &mut Context) -> Handle<Self> {
-        Self { search_shown: true, tree_view: true }.build(cx, |cx| {
+        Self { search_shown: true }.build(cx, |cx| {
             Keymap::from(vec![(
                 KeyChord::new(Modifiers::CTRL, Code::KeyF),
                 KeymapEntry::new((), |cx| cx.emit(BrowserEvent::ToggleShowSearch)),
@@ -31,37 +31,24 @@ impl BrowserPanel {
             // Header
             HStack::new(cx, |cx| {
                 // Panel Icon
-                Icon::new(cx, ICON_FOLDER_OPEN).class("panel-icon");
-
-                // List/Tree Toggle Buttons
-                HStack::new(cx, |cx| {
-                    Button::new(
-                        cx,
-                        |cx| cx.emit(BrowserEvent::ShowTree),
-                        |cx| Icon::new(cx, ICON_LIST_TREE),
-                    )
-                    .checked(BrowserPanel::tree_view);
-
-                    Button::new(
-                        cx,
-                        |cx| cx.emit(BrowserEvent::ShowList),
-                        |cx| Icon::new(cx, ICON_LIST),
-                    )
-                    .checked(BrowserPanel::tree_view.map(|flag| !flag));
-                })
-                .class("button-group")
-                .width(Auto);
+                Svg::new(cx, ICON_FOLDER_OPEN).class("panel-icon");
 
                 // Search Toggle Button
-                ToggleButton::new(cx, BrowserPanel::search_shown, |cx| Icon::new(cx, ICON_SEARCH))
-                    .on_toggle(|cx| cx.emit(BrowserEvent::ToggleShowSearch));
+                ToggleButton::new(cx, BrowserPanel::search_shown, |cx| Svg::new(cx, ICON_SEARCH))
+                    .on_toggle(|cx| cx.emit(BrowserEvent::ToggleShowSearch))
+                    .name(Localized::new("toggle-search"))
+                    .tooltip(|cx| {
+                        Tooltip::new(cx, |cx| {
+                            Label::new(cx, Localized::new("toggle-search"));
+                        })
+                    });
             })
             .class("header");
 
             // Search Box
             HStack::new(cx, |cx| {
                 Textbox::new(cx, AppData::browser.then(BrowserState::search_text))
-                    .on_edit(|cx, text| cx.emit(BrowserEvent::Search(text)))
+                    .on_edit(|cx, text| cx.emit(BrowserEvent::Search(text.clone())))
                     .placeholder(Localized::new("search"))
                     .width(Stretch(1.0))
                     .bind(BrowserPanel::search_shown, |mut handle, shown| {
@@ -76,26 +63,30 @@ impl BrowserPanel {
                     ToggleButton::new(
                         cx,
                         AppData::browser.then(BrowserState::search_case_sensitive),
-                        |cx| Icon::new(cx, ICON_LETTER_CASE),
+                        |cx| Svg::new(cx, ICON_LETTER_CASE),
                     )
                     .on_toggle(|cx| cx.emit(BrowserEvent::ToggleSearchCaseSensitivity))
-                    .size(Pixels(20.0))
                     .class("filter-search")
+                    .name(Localized::new("match-case"))
                     .tooltip(|cx| {
-                        Label::new(cx, Localized::new("match-case"));
+                        Tooltip::new(cx, |cx| {
+                            Label::new(cx, Localized::new("match-case"));
+                        })
                     });
 
                     // Filter Results Toggle Button
                     ToggleButton::new(
                         cx,
                         AppData::browser.then(BrowserState::filter_search),
-                        |cx| Icon::new(cx, ICON_FILTER),
+                        |cx| Svg::new(cx, ICON_FILTER),
                     )
                     .on_toggle(|cx| cx.emit(BrowserEvent::ToggleSearchFilter))
-                    .size(Pixels(20.0))
                     .class("filter-search")
+                    .name(Localized::new("filter"))
                     .tooltip(|cx| {
-                        Label::new(cx, Localized::new("filter"));
+                        Tooltip::new(cx, |cx| {
+                            Label::new(cx, Localized::new("filter"));
+                        })
                     });
                 })
                 .position_type(PositionType::SelfDirected)
@@ -113,14 +104,45 @@ impl BrowserPanel {
             ScrollView::new(cx, 0.0, 0.0, false, true, |cx| {
                 treeview(
                     cx,
-                    AppData::browser.then(BrowserState::libraries.index(0)),
+                    AppData::browser.then(BrowserState::libraries.idx(0)),
                     0,
                     directory,
                     |cx, item, level| {
                         treeview(cx, item, level, directory, |cx, item, level| {
                             treeview(cx, item, level, directory, |cx, item, level| {
                                 treeview(cx, item, level, directory, |cx, item, level| {
-                                    treeview(cx, item, level, directory, directory);
+                                    treeview(cx, item, level, directory, |cx, item, level| {
+                                        treeview(cx, item, level, directory, |cx, item, level| {
+                                            treeview(
+                                                cx,
+                                                item,
+                                                level,
+                                                directory,
+                                                |cx, item, level| {
+                                                    treeview(
+                                                        cx,
+                                                        item,
+                                                        level,
+                                                        directory,
+                                                        |cx, item, level| {
+                                                            treeview(
+                                                                cx,
+                                                                item,
+                                                                level,
+                                                                directory,
+                                                                |cx, item, level| {
+                                                                    treeview(
+                                                                        cx, item, level, directory,
+                                                                        directory,
+                                                                    );
+                                                                },
+                                                            );
+                                                        },
+                                                    );
+                                                },
+                                            );
+                                        });
+                                    });
                                 });
                             });
                         });
@@ -128,11 +150,11 @@ impl BrowserPanel {
                 );
             });
 
-            // Footer
-            HStack::new(cx, |cx| {
-                Label::new(cx, "550 samples in 34 folders");
-            })
-            .class("footer");
+            // // Footer
+            // HStack::new(cx, |cx| {
+            //     Label::new(cx, "550 samples in 34 folders");
+            // })
+            // .class("footer");
         })
     }
 }
@@ -145,9 +167,6 @@ impl View for BrowserPanel {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|browser_event, _| match browser_event {
             BrowserEvent::ToggleShowSearch => self.search_shown ^= true,
-
-            BrowserEvent::ShowTree => self.tree_view = true,
-            BrowserEvent::ShowList => self.tree_view = false,
             _ => {}
         });
 
@@ -208,12 +227,12 @@ impl DirectoryItem {
         Self { path: path.clone(), collection: id }
             .build(cx, |cx| {
                 // Arrow Icon
-                Icon::new(cx, ICON_CHEVRON_DOWN)
+                Button::new(cx, |cx| Svg::new(cx, ICON_CHEVRON_DOWN))
                     .class("dir-arrow")
                     .visibility(root.then(Directory::children).map(|c| !c.is_empty()))
                     .hoverable(root.then(Directory::children).map(|c| !c.is_empty()))
-                    .rotate(root.then(Directory::is_open).map(|flag| {
-                        if *flag {
+                    .rotate(root.then(Directory::is_open).map(|is_open| {
+                        if *is_open {
                             Angle::Deg(0.0)
                         } else {
                             Angle::Deg(-90.0)
@@ -227,14 +246,18 @@ impl DirectoryItem {
                     .cursor(CursorIcon::Hand);
 
                 // Folder Icon
-                Icon::new(
+                Svg::new(
                     cx,
-                    selected.map(
-                        |is_selected| if *is_selected { ICON_FOLDER_FILLED } else { ICON_FOLDER },
-                    ),
+                    root.then(Directory::is_open).map(|is_open| {
+                        if *is_open {
+                            ICON_FOLDER_OPEN
+                        } else {
+                            ICON_FOLDER
+                        }
+                    }),
                 )
                 .class("dir-icon")
-                .cursor(CursorIcon::Hand)
+                .hoverable(false)
                 .checked(selected);
 
                 // Directory name
@@ -243,6 +266,7 @@ impl DirectoryItem {
                     .text_wrap(false)
                     .hoverable(false)
                     .overflow(Overflow::Hidden)
+                    .text_overflow(TextOverflow::Ellipsis)
                     .class("dir-name");
 
                 // Number of Files
@@ -253,23 +277,22 @@ impl DirectoryItem {
             })
             .navigable(true)
             .focused(focused)
-            .class("dir-item")
             .layout_type(LayoutType::Row)
             .toggle_class("selected", selected)
             .toggle_class(
                 "search-match",
                 root.then(Directory::match_indices).map(|idx| !idx.is_empty()),
             )
-        // TODO
-        // .tooltip(|cx| {
-        //     Tooltip::new(cx, |cx| {
-        //         Label::new(
-        //             cx,
-        //             root.then(Directory::path)
-        //                 .map(|path| path.as_os_str().to_str().unwrap().to_owned()),
-        //         );
-        //     });
-        // })
+            .tooltip(move |cx| {
+                Tooltip::new(cx, |cx| {
+                    Label::new(
+                        cx,
+                        root.then(Directory::path)
+                            .map(|path| path.as_os_str().to_str().unwrap().to_owned()),
+                    );
+                })
+                .placement(Placement::BottomStart)
+            })
     }
 }
 
@@ -294,6 +317,10 @@ impl View for DirectoryItem {
                 }
             }
 
+            WindowEvent::MouseDoubleClick(button) if *button == MouseButton::Left => {
+                cx.emit(BrowserEvent::ToggleDirectory(self.path.clone()));
+            }
+
             WindowEvent::FocusIn => {
                 cx.emit(BrowserEvent::SetFocused(Some(self.path.clone())));
             }
@@ -307,7 +334,7 @@ fn treeview<L>(
     lens: L,
     level: u32,
     header: impl Fn(&mut Context, L, u32) + 'static,
-    content: impl Fn(&mut Context, Index<Then<L, Wrapper<children>>, Directory>, u32) + 'static,
+    content: impl Fn(&mut Context, MapRef<Then<L, Wrapper<children>>, Directory>, u32) + 'static,
 ) where
     L: Lens<Target = Directory>,
     L::Source: Model,

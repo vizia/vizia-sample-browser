@@ -14,6 +14,8 @@ pub const DATABASE_META_DIRECTORY_NAME: &str = ".vsb-meta/";
 pub const DATABASE_DATABASE_NAME: &str = ".vsb-database";
 pub const DATABASE_META_NAME: &str = ".vsb-meta";
 
+pub type Hash = String;
+
 #[derive(Clone, Debug, Serialize, Deserialize, Lens, PartialEq)]
 pub struct DatabaseMetadata {
     pub(super) version: String,
@@ -91,6 +93,12 @@ pub trait DatabaseStore {
     }
 
     //
+    fn initialize_or_create_stores(&self) -> Result<(), DatabaseError> {
+        create_dir(self.get_meta_directory_path());
+
+        Ok(())
+    }
+
     fn store_metadata(&self);
     fn retreive_metadata(&mut self);
 }
