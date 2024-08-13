@@ -61,15 +61,15 @@ where
         });
     }
 
-    fn draw(&self, cx: &mut DrawContext, canvas: &mut Canvas) {
+    fn draw(&self, cx: &mut DrawContext, canvas: &Canvas) {
         if let Some(waveform) = self.waveform_lens.get_ref(cx) {
             let bounds = cx.bounds();
 
             let mut path1 = vg::Path::new();
             let mut path2 = vg::Path::new();
 
-            path1.move_to(bounds.x, bounds.center().1);
-            path2.move_to(bounds.x, bounds.center().1);
+            path1.move_to((bounds.x, bounds.center().1));
+            path2.move_to((bounds.x, bounds.center().1));
 
             let x = bounds.x;
             let w = bounds.w;
@@ -103,35 +103,39 @@ where
 
                             let v_mean_db = if v_mean < 0.0 { -v_mean_db } else { v_mean_db };
 
-                            path1.line_to(x + (pixel as f32), y + h / 2.0 - v_min_db * h / 2.0);
-                            path1.line_to(x + (pixel as f32), y + h / 2.0 - v_max_db * h / 2.0);
+                            path1.line_to((x + (pixel as f32), y + h / 2.0 - v_min_db * h / 2.0));
+                            path1.line_to((x + (pixel as f32), y + h / 2.0 - v_max_db * h / 2.0));
 
-                            path2.move_to(x + (pixel as f32), y + h / 2.0 + v_mean_db * h / 2.0);
-                            path2.line_to(x + (pixel as f32), y + h / 2.0 - v_mean_db * h / 2.0);
+                            path2.move_to((x + (pixel as f32), y + h / 2.0 + v_mean_db * h / 2.0));
+                            path2.line_to((x + (pixel as f32), y + h / 2.0 - v_mean_db * h / 2.0));
                         }
 
                         UnitsMode::Linear => {
-                            path1.line_to(x + (pixel as f32), y + h / 2.0 - v_min * h / 2.0);
-                            path1.line_to(x + (pixel as f32), y + h / 2.0 - v_max * h / 2.0);
+                            path1.line_to((x + (pixel as f32), y + h / 2.0 - v_min * h / 2.0));
+                            path1.line_to((x + (pixel as f32), y + h / 2.0 - v_max * h / 2.0));
 
-                            path2.move_to(x + (pixel as f32), y + h / 2.0 + v_mean * h / 2.0);
-                            path2.line_to(x + (pixel as f32), y + h / 2.0 - v_mean * h / 2.0);
+                            path2.move_to((x + (pixel as f32), y + h / 2.0 + v_mean * h / 2.0));
+                            path2.line_to((x + (pixel as f32), y + h / 2.0 - v_mean * h / 2.0));
                         }
                     }
                 }
 
                 // Draw min/max paths
-                let mut paint = vg::Paint::color(vg::Color::rgba(50, 50, 255, 255));
-                paint.set_line_width(1.0);
+                let mut paint = vg::Paint::default();
+                paint.set_color(Color::rgba(50, 50, 255, 255));
+                paint.set_stroke_width(1.0);
                 paint.set_anti_alias(false);
-                canvas.stroke_path(&mut path1, &paint);
+                paint.set_style(vg::PaintStyle::Stroke);
+                canvas.draw_path(&mut path1, &paint);
 
                 // Draw rms paths
                 if zoom_level < 5 {
-                    let mut paint = vg::Paint::color(vg::Color::rgba(80, 80, 255, 255));
-                    paint.set_line_width(1.0);
+                    let mut paint = vg::Paint::default();
+                    paint.set_color(Color::rgba(80, 80, 255, 255));
+                    paint.set_stroke_width(1.0);
                     paint.set_anti_alias(false);
-                    canvas.stroke_path(&mut path2, &paint);
+                    paint.set_style(vg::PaintStyle::Stroke);
+                    canvas.draw_path(&mut path2, &paint);
                 }
             }
         }

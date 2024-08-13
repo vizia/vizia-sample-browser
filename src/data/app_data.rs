@@ -1,16 +1,19 @@
 use std::sync::{Arc, Mutex};
 
 use basedrop::Collector;
+use rfd::FileDialog;
 use vizia::prelude::*;
 
 use crate::{
-    database::prelude::{AudioFile, CollectionID, Database, DatabaseAudioFileHandler},
-    engine::{SamplePlayerController, Waveform},
-    state::{
+    data::{
         browser::{BrowserState, Directory},
         TagsState,
     },
+    database::prelude::{AudioFile, CollectionID, Database, DatabaseAudioFileHandler},
+    engine::{SamplePlayerController, Waveform},
 };
+
+use super::SettingsData;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ChannelMode {
@@ -42,6 +45,11 @@ pub enum ZoomMode {
 
 #[derive(Lens)]
 pub struct AppData {
+    // Dialogs
+    pub show_about_dialog: bool,
+    pub show_settings_dialog: bool,
+    pub show_add_collection_dialog: bool,
+
     // GUI State
     pub browser: BrowserState,
     pub tags: TagsState,
@@ -51,6 +59,7 @@ pub struct AppData {
     pub table_rows: Vec<AudioFile>,
     pub search_text: String,
     pub selected_sample: Option<usize>,
+    pub settings_data: SettingsData,
 
     // Database
     #[lens(ignore)]
@@ -69,6 +78,15 @@ pub struct AppData {
 }
 
 pub enum AppEvent {
+    ShowAboutDialog,
+    HideAboutDialog,
+    ShowSettingsDialog,
+    HideSettingsDialog,
+    ShowAddCollectionDialog,
+    HideAddCollectionDialog,
+
+    ShowOpenCollectionDialog,
+
     SetBrowserWidth(f32),
     SetTableHeight(f32),
     ViewCollection(CollectionID),
@@ -86,8 +104,15 @@ impl Model for AppData {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         self.browser.event(cx, event);
         self.tags.event(cx, event);
+        self.settings_data.event(cx, event);
 
         event.map(|app_event, _| match app_event {
+            AppEvent::ShowAboutDialog => self.show_about_dialog = true,
+            AppEvent::HideAboutDialog => self.show_about_dialog = false,
+            AppEvent::ShowSettingsDialog => self.show_settings_dialog = true,
+            AppEvent::HideSettingsDialog => self.show_settings_dialog = false,
+            AppEvent::ShowAddCollectionDialog => self.show_add_collection_dialog = true,
+            AppEvent::HideAddCollectionDialog => self.show_add_collection_dialog = false,
             AppEvent::SetBrowserWidth(width) => self.browser_width = *width,
             AppEvent::SetTableHeight(height) => self.table_height = *height,
             AppEvent::ViewCollection(id) => {
@@ -123,6 +148,10 @@ impl Model for AppData {
             AppEvent::Stop => {
                 self.controller.stop();
                 self.controller.seek(0.0);
+            }
+
+            AppEvent::ShowOpenCollectionDialog => {
+                let folder = FileDialog::new().set_directory("/").pick_folder();
             }
         });
     }

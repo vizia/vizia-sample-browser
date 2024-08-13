@@ -19,12 +19,12 @@ impl PopupAction {
 
         Self { on_action: None }
             .build(cx, |cx| {
-                match icon {
-                    Some(i) => {
-                        Icon::new(cx, i).hoverable(false);
-                    }
-                    None => {}
-                }
+                // match icon {
+                //     Some(i) => {
+                //         Icon::new(cx, i).hoverable(false);
+                //     }
+                //     None => {}
+                // }
 
                 Label::new(cx, &label.to_string()).hoverable(false);
             })

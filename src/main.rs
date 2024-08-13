@@ -5,11 +5,9 @@ use basedrop::Collector;
 use cpal::traits::StreamTrait;
 use itertools::Itertools;
 use rusqlite::Connection;
+use thiserror::Error;
 use std::{
-    collections::{HashMap, VecDeque},
-    path::{Path, PathBuf},
-    rc::Rc,
-    sync::{Arc, Mutex},
+    collections::{HashMap, VecDeque}, error::Error, path::{Path, PathBuf}, rc::Rc, sync::{Arc, Mutex}
 };
 use views::smart_table::SmartTable;
 use vizia::{
@@ -17,8 +15,8 @@ use vizia::{
     prelude::{GenerationalId, *},
 };
 
-mod state;
-use state::*;
+mod data;
+use data::*;
 
 mod database;
 use database::*;
@@ -26,15 +24,29 @@ use database::*;
 mod panels;
 use panels::*;
 
+mod dialogs;
+use dialogs::*;
+
 mod views;
 use views::*;
 
 mod engine;
 use engine::*;
 
+mod menus;
+use menus::*;
+
 mod popup_menu;
 
-fn main() {
+#[derive(Debug, Error)]
+#[error("App Error: ")]
+pub enum AppError {
+    ApplicationError(#[from] vizia::ApplicationError),
+    IOError(#[from] std::io::Error),
+    ImageError(#[from] image::ImageError),
+}
+
+fn main() -> Result<(), AppError> {
     // Initialize gc
     let collector = Collector::new();
 
@@ -53,17 +65,22 @@ fn main() {
         std::thread::park();
     });
 
+    // let icon = vizia::vg::Image::from_encoded(vizia::vg::Data::new_bytes(include_bytes!("../resources/icons/icon_256.png")));
+    let icon = image::ImageReader::new(std::io::Cursor::new(include_bytes!("../resources/icons/icon_32.png"))).with_guessed_format()?.decode()?;
+
     Application::new(move |cx| {
         // Add resources
         cx.add_stylesheet(include_style!("resources/themes/style.css"))
             .expect("Failed to load stylesheet");
 
         cx.add_translation(
-            langid!("en-US"),
-            include_str!("../resources/translations/en-US/browser.ftl"),
+            langid!("en-GB"),
+            include_str!("../resources/translations/en-GB/strings.ftl"),
         );
 
-        cx.add_translation(langid!("es"), include_str!("../resources/translations/es/browser.ftl"));
+        cx.load_image("logo", include_bytes!("../resources/icons/icon_32.png"), ImageRetentionPolicy::Forever);
+
+        cx.add_translation(langid!("es"), include_str!("../resources/translations/es/strings.ftl"));
 
         cx.emit(EnvironmentEvent::SetThemeMode(AppTheme::BuiltIn(ThemeMode::DarkMode)));
 
@@ -109,49 +126,67 @@ fn main() {
             waveform: Waveform::new(),
             zoom_level: 8,
             start: 0,
+            show_about_dialog: false,
+            show_settings_dialog: false,
+            show_add_collection_dialog: false,
+            settings_data: SettingsData::dummy(),
         }
         .build(cx);
 
         cx.emit(AppEvent::LoadSample(String::from(
-            "/Users/gatkinson/Rust/vizia-sample-browser/the-libre-sample-pack/drums/one shot/kicks/couch kick 1 @TeaBoi.wav",
+            "C:/Rust/vizia-sample-browser/the-libre-sample-pack/drums/one shot/kicks/couch kick 1 @TeaBoi.wav",
         )));
 
-        HStack::new(cx, |cx| {
-            ResizableStack::new(
-                cx,
-                AppData::browser_width,
-                ResizeStackDirection::Right,
-                |cx, width| cx.emit(AppEvent::SetBrowserWidth(width)),
-                |cx| {
-                    BrowserPanel::new(cx);
-                    TagsPanel::new(cx);
-                },
-            )
-            .row_between(Pixels(1.0))
-            .class("browser");
+        about_dialog(cx);
+        settings_dialog(cx, AppData::settings_data);
 
-            VStack::new(cx, |cx| {
-                // Samples Panel
+        VStack::new(cx, |cx|{
+            HStack::new(cx, |cx|{
+                menu_bar(cx);
+            }).class("top-bar");
+           
+            HStack::new(cx, |cx| {
                 ResizableStack::new(
                     cx,
-                    AppData::table_height,
-                    ResizeStackDirection::Bottom,
-                    |cx, height| cx.emit(AppEvent::SetTableHeight(height)),
+                    AppData::browser_width,
+                    ResizeStackDirection::Right,
+                    |cx, width| cx.emit(AppEvent::SetBrowserWidth(width)),
                     |cx| {
-                        SamplesPanel::new(cx);
+                        BrowserPanel::new(cx);
+                        TagsPanel::new(cx);
                     },
-                );
-                // Waveform Panel
-                WavePanel::new(cx);
+                )
+                .row_between(Pixels(1.0))
+                .class("browser");
+
+                VStack::new(cx, |cx| {
+                    // Samples Panel
+                    ResizableStack::new(
+                        cx,
+                        AppData::table_height,
+                        ResizeStackDirection::Bottom,
+                        |cx, height| cx.emit(AppEvent::SetTableHeight(height)),
+                        |cx| {
+                            SamplesPanel::new(cx);
+                        },
+                    );
+                    // Waveform Panel
+                    WavePanel::new(cx);
+                })
+                .row_between(Pixels(1.0));
             })
-            .row_between(Pixels(1.0));
-        })
-        .col_between(Pixels(1.0))
-        .size(Stretch(1.0));
+            .col_between(Pixels(1.0))
+            .size(Stretch(1.0));            
+        });
+
+
     })
     .title("Vizia Sample Browser")
     .inner_size((1400, 800))
-    .run();
+    .icon(icon.width(), icon.height(), icon.into_bytes())
+    .run()?;
+
+    Ok(())
 }
 
 fn collections_to_directories(

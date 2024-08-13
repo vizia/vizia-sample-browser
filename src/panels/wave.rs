@@ -7,8 +7,8 @@ use vizia::icons::{
 };
 
 use crate::app_data::AppData;
-use crate::state::browser::{BrowserEvent, BrowserState};
-use crate::state::AppEvent;
+use crate::data::browser::{BrowserEvent, BrowserState};
+use crate::data::AppEvent;
 use crate::views::Waveview;
 
 #[derive(Lens)]
@@ -23,7 +23,7 @@ impl WavePanel {
             // Header
             HStack::new(cx, |cx| {
                 // Panel Icon
-                Icon::new(cx, ICON_WAVE_SINE).class("panel-icon");
+                Svg::new(cx, ICON_WAVE_SINE).class("panel-icon");
 
                 Label::new(cx, "Sample Name").right(Stretch(1.0));
 
@@ -44,13 +44,14 @@ impl WavePanel {
             HStack::new(cx, |cx| {
                 // toolbar here
                 ButtonGroup::new(cx, |cx| {
-                    Button::new(cx, |cx| Icon::new(cx, ICON_PLAYER_SKIP_BACK));
-                    Button::new(cx, |cx| Icon::new(cx, ICON_PLAYER_PLAY))
+                    Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_SKIP_BACK));
+                    Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_PLAY))
                         .on_press(|cx| cx.emit(AppEvent::Play));
-                    Button::new(cx, |cx| Icon::new(cx, ICON_PLAYER_STOP))
+                    Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_STOP))
                         .on_press(|cx| cx.emit(AppEvent::Stop));
-                    Button::new(cx, |cx| Icon::new(cx, ICON_PLAYER_SKIP_FORWARD));
-                });
+                    Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_SKIP_FORWARD));
+                })
+                .class("transport-controls");
             })
             .class("footer");
         })

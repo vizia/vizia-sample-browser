@@ -5,41 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "lldb",
+            "name": "(Windows) Launch",
+            "type": "cppvsdbg",
             "request": "launch",
-            "name": "Debug executable 'vizia-sample-browser'",
-            "cargo": {
-                "args": [
-                    "build",
-                    "--bin=vizia-sample-browser",
-                    "--package=vizia-sample-browser"
-                ],
-                "filter": {
-                    "name": "vizia-sample-browser",
-                    "kind": "bin"
-                }
-            },
+            "program": "${workspaceRoot}/target/debug/vizia-sample-browser.exe",
             "args": [],
-            "cwd": "${workspaceFolder}"
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}",
+            "environment": [],
+            "externalConsole": true
         },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug unit tests in executable 'vizia-sample-browser'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--bin=vizia-sample-browser",
-                    "--package=vizia-sample-browser"
-                ],
-                "filter": {
-                    "name": "vizia-sample-browser",
-                    "kind": "bin"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        }
+        
     ]
 }

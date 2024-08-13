@@ -11,7 +11,7 @@ impl SamplesPanel {
     pub fn new(cx: &mut Context) -> Handle<Self> {
         Self {}.build(cx, |cx| {
             HStack::new(cx, |cx| {
-                Icon::new(cx, ICON_LIST_SEARCH).class("panel-icon");
+                Svg::new(cx, ICON_LIST_SEARCH).class("panel-icon");
 
                 HStack::new(cx, |cx| {
                     Textbox::new(cx, AppData::search_text)
@@ -20,12 +20,14 @@ impl SamplesPanel {
                         .class("search")
                         .placeholder(Localized::new("search"));
                     // .on_edit(|cx, text| cx.emit(AppDataSetter::EditableText(text)));
-                    Icon::new(cx, ICON_SEARCH)
-                        .color(Color::gray())
-                        .size(Pixels(28.0))
+                    Svg::new(cx, ICON_SEARCH)
+                        .class("icon")
+                        .size(Pixels(20.0))
                         .position_type(PositionType::SelfDirected);
                 })
                 .height(Auto)
+                .child_top(Stretch(1.0))
+                .child_bottom(Stretch(1.0))
                 .width(Stretch(1.0));
             })
             .col_between(Pixels(8.0))

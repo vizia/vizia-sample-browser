@@ -45,7 +45,7 @@ impl SmartTable {
         R: Data,
         T1: Data + ToStringLocalized,
         // T2: Data + ToStringLocalized,
-        F: 'static + Copy + Fn(&mut Context, Index<L2, R>, usize),
+        F: 'static + Copy + Fn(&mut Context, MapRef<L2, R>, usize),
     {
         let num_cols = headers.map(|h| h.len()).get(cx);
 
@@ -54,7 +54,7 @@ impl SmartTable {
             initialized: false,
             shown: vec![true; num_cols],
             limiters: vec![0.0; num_cols - 1],
-            widths: vec![Stretch(1.0); num_cols],
+            widths: vec![Pixels(100.0); num_cols],
             // data: data.get(cx),
             show_menu: None,
         }
@@ -66,7 +66,7 @@ impl SmartTable {
                         Label::new(cx, item).class("column-heading").hoverable(false);
                     })
                     .hoverable(false)
-                    .width(Self::widths.index(col_index))
+                    .width(Self::widths.idx(col_index))
                     .height(Auto);
                 })
                 .hoverable(true)
@@ -94,7 +94,7 @@ impl SmartTable {
                     })
                     .class("column")
                     .overflow(Overflow::Hidden)
-                    .width(Self::widths.index(col_index))
+                    .width(Self::widths.idx(col_index))
                     .height(Pixels(32.0));
                 })
                 .class("row")
@@ -104,9 +104,8 @@ impl SmartTable {
             })
             .class("row-list")
             .width(Stretch(1.0));
-
-            cx.emit(SmartTableEvent::Initialize);
         })
+        .on_build(|cx| cx.emit(SmartTableEvent::Initialize))
         .toggle_class("dragging", SmartTable::dragging.map(|dragging| dragging.is_some()))
 
         // PopupMenu::new(cx, SmartTable::show_menu, |cx| {
@@ -149,14 +148,14 @@ impl View for SmartTable {
                     self.initialized = true;
 
                     // Convert from Stretch units to pixels for each portion.
-                    let bounds = cx.bounds();
+                    // let bounds = cx.bounds();
 
-                    let w = bounds.w / cx.scale_factor();
+                    // let w = bounds.w / cx.scale_factor();
 
-                    let stretch_width = w / self.widths.len() as f32;
-                    for size in self.widths.iter_mut() {
-                        *size = Pixels(stretch_width);
-                    }
+                    // let stretch_width = w / self.widths.len() as f32;
+                    // for size in self.widths.iter_mut() {
+                    //     *size = Pixels(stretch_width);
+                    // }
 
                     let mut acc = 0.0;
                     for (i, l) in self.limiters.iter_mut().enumerate() {

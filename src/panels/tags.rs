@@ -6,7 +6,7 @@ use vizia::icons::{
 };
 
 use crate::app_data::AppData;
-use crate::state::{TagsEvent, TagsState};
+use crate::data::{TagsEvent, TagsState};
 
 #[derive(Lens)]
 pub struct TagsPanel {
@@ -25,7 +25,7 @@ impl TagsPanel {
             // Header
             HStack::new(cx, |cx| {
                 // Panel Icon
-                Icon::new(cx, ICON_TAG).class("panel-icon");
+                Svg::new(cx, ICON_TAG).class("panel-icon");
 
                 // SplitButton::new(cx, |cx| {
                 //     Label::new(cx, "Sorting");
@@ -34,7 +34,7 @@ impl TagsPanel {
                 // });
 
                 // Search Toggle Button
-                ToggleButton::new(cx, TagsPanel::search_shown, |cx| Icon::new(cx, ICON_SEARCH))
+                ToggleButton::new(cx, TagsPanel::search_shown, |cx| Svg::new(cx, ICON_SEARCH))
                     .on_toggle(|cx| cx.emit(TagsEvent::ToggleShowSearch));
             })
             .class("header");
@@ -57,7 +57,7 @@ impl TagsPanel {
                     ToggleButton::new(
                         cx,
                         AppData::tags.then(TagsState::search_case_sensitive),
-                        |cx| Icon::new(cx, ICON_LETTER_CASE),
+                        |cx| Svg::new(cx, ICON_LETTER_CASE),
                     )
                     .on_toggle(|cx| cx.emit(TagsEvent::ToggleSearchCaseSensitivity))
                     .size(Pixels(20.0))
@@ -70,7 +70,7 @@ impl TagsPanel {
 
                     // Filter Results Toggle Button
                     ToggleButton::new(cx, AppData::tags.then(TagsState::filter_search), |cx| {
-                        Icon::new(cx, ICON_FILTER)
+                        Svg::new(cx, ICON_FILTER)
                     })
                     .on_toggle(|cx| cx.emit(TagsEvent::ToggleSearchFilter))
                     .size(Pixels(20.0))

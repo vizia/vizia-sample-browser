@@ -1,7 +1,8 @@
 use super::audio_data::AudioData;
 use super::audio_stream::PlaybackContext;
 use basedrop::{Collector, Handle, Shared};
-use ringbuf::{HeapConsumer, HeapProducer, HeapRb};
+use ringbuf::traits::{Consumer, Producer, Split};
+use ringbuf::{HeapCons, HeapProd, HeapRb};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
@@ -25,12 +26,12 @@ pub struct SamplePlayer {
     active: [bool; 32],
     playhead: Arc<AtomicUsize>,
     state: PlayerState,
-    rx: HeapConsumer<PlayerAction>,
+    rx: HeapCons<PlayerAction>,
     volume: f32,
 }
 
 pub struct SamplePlayerController {
-    tx: HeapProducer<PlayerAction>,
+    tx: HeapProd<PlayerAction>,
     playhead: Arc<AtomicUsize>,
     collector: Handle,
     sample_rate: Option<f64>,
@@ -71,7 +72,7 @@ impl SamplePlayer {
 
     #[inline]
     pub fn advance(&mut self, context: &mut PlaybackContext) {
-        while let Some(msg) = self.rx.pop() {
+        while let Some(msg) = self.rx.try_pop() {
             match msg {
                 PlayerAction::Seek(pos) => {
                     if let Some(f) = &self.file {
@@ -140,9 +141,9 @@ impl SamplePlayerController {
     }
 
     fn send_msg(&mut self, playeraction: PlayerAction) {
-        let mut e = self.tx.push(playeraction);
+        let mut e = self.tx.try_push(playeraction);
         while let Err(playeraction) = e {
-            e = self.tx.push(playeraction);
+            e = self.tx.try_push(playeraction);
         }
     }
 

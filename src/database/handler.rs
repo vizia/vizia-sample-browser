@@ -1,4 +1,4 @@
-use crate::state::browser::Directory;
+use crate::data::browser::Directory;
 
 use super::*;
 use rusqlite::Connection;

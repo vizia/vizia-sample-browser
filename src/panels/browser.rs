@@ -10,9 +10,9 @@ use vizia::icons::{
 use vizia::prelude::*;
 
 use crate::app_data::AppData;
+use crate::data::browser::directory_derived_lenses::children;
+use crate::data::browser::*;
 use crate::database::prelude::CollectionID;
-use crate::state::browser::directory_derived_lenses::children;
-use crate::state::browser::*;
 
 #[derive(Lens)]
 pub struct BrowserPanel {
@@ -31,10 +31,10 @@ impl BrowserPanel {
             // Header
             HStack::new(cx, |cx| {
                 // Panel Icon
-                Icon::new(cx, ICON_FOLDER_OPEN).class("panel-icon");
+                Svg::new(cx, ICON_FOLDER_OPEN).class("panel-icon");
 
                 // Search Toggle Button
-                ToggleButton::new(cx, BrowserPanel::search_shown, |cx| Icon::new(cx, ICON_SEARCH))
+                ToggleButton::new(cx, BrowserPanel::search_shown, |cx| Svg::new(cx, ICON_SEARCH))
                     .on_toggle(|cx| cx.emit(BrowserEvent::ToggleShowSearch))
                     .name(Localized::new("toggle-search"))
                     .tooltip(|cx| {
@@ -63,10 +63,9 @@ impl BrowserPanel {
                     ToggleButton::new(
                         cx,
                         AppData::browser.then(BrowserState::search_case_sensitive),
-                        |cx| Icon::new(cx, ICON_LETTER_CASE),
+                        |cx| Svg::new(cx, ICON_LETTER_CASE),
                     )
                     .on_toggle(|cx| cx.emit(BrowserEvent::ToggleSearchCaseSensitivity))
-                    .size(Pixels(20.0))
                     .class("filter-search")
                     .name(Localized::new("match-case"))
                     .tooltip(|cx| {
@@ -79,10 +78,9 @@ impl BrowserPanel {
                     ToggleButton::new(
                         cx,
                         AppData::browser.then(BrowserState::filter_search),
-                        |cx| Icon::new(cx, ICON_FILTER),
+                        |cx| Svg::new(cx, ICON_FILTER),
                     )
                     .on_toggle(|cx| cx.emit(BrowserEvent::ToggleSearchFilter))
-                    .size(Pixels(20.0))
                     .class("filter-search")
                     .name(Localized::new("filter"))
                     .tooltip(|cx| {
@@ -106,14 +104,45 @@ impl BrowserPanel {
             ScrollView::new(cx, 0.0, 0.0, false, true, |cx| {
                 treeview(
                     cx,
-                    AppData::browser.then(BrowserState::libraries.index(0)),
+                    AppData::browser.then(BrowserState::libraries.idx(0)),
                     0,
                     directory,
                     |cx, item, level| {
                         treeview(cx, item, level, directory, |cx, item, level| {
                             treeview(cx, item, level, directory, |cx, item, level| {
                                 treeview(cx, item, level, directory, |cx, item, level| {
-                                    treeview(cx, item, level, directory, directory);
+                                    treeview(cx, item, level, directory, |cx, item, level| {
+                                        treeview(cx, item, level, directory, |cx, item, level| {
+                                            treeview(
+                                                cx,
+                                                item,
+                                                level,
+                                                directory,
+                                                |cx, item, level| {
+                                                    treeview(
+                                                        cx,
+                                                        item,
+                                                        level,
+                                                        directory,
+                                                        |cx, item, level| {
+                                                            treeview(
+                                                                cx,
+                                                                item,
+                                                                level,
+                                                                directory,
+                                                                |cx, item, level| {
+                                                                    treeview(
+                                                                        cx, item, level, directory,
+                                                                        directory,
+                                                                    );
+                                                                },
+                                                            );
+                                                        },
+                                                    );
+                                                },
+                                            );
+                                        });
+                                    });
                                 });
                             });
                         });
@@ -198,12 +227,12 @@ impl DirectoryItem {
         Self { path: path.clone(), collection: id }
             .build(cx, |cx| {
                 // Arrow Icon
-                Icon::new(cx, ICON_CHEVRON_DOWN)
+                Button::new(cx, |cx| Svg::new(cx, ICON_CHEVRON_DOWN))
                     .class("dir-arrow")
                     .visibility(root.then(Directory::children).map(|c| !c.is_empty()))
                     .hoverable(root.then(Directory::children).map(|c| !c.is_empty()))
-                    .rotate(root.then(Directory::is_open).map(|flag| {
-                        if *flag {
+                    .rotate(root.then(Directory::is_open).map(|is_open| {
+                        if *is_open {
                             Angle::Deg(0.0)
                         } else {
                             Angle::Deg(-90.0)
@@ -217,11 +246,15 @@ impl DirectoryItem {
                     .cursor(CursorIcon::Hand);
 
                 // Folder Icon
-                Icon::new(
+                Svg::new(
                     cx,
-                    selected.map(
-                        |is_selected| if *is_selected { ICON_FOLDER_FILLED } else { ICON_FOLDER },
-                    ),
+                    root.then(Directory::is_open).map(|is_open| {
+                        if *is_open {
+                            ICON_FOLDER_OPEN
+                        } else {
+                            ICON_FOLDER
+                        }
+                    }),
                 )
                 .class("dir-icon")
                 .hoverable(false)
@@ -233,6 +266,7 @@ impl DirectoryItem {
                     .text_wrap(false)
                     .hoverable(false)
                     .overflow(Overflow::Hidden)
+                    .text_overflow(TextOverflow::Ellipsis)
                     .class("dir-name");
 
                 // Number of Files
@@ -243,14 +277,13 @@ impl DirectoryItem {
             })
             .navigable(true)
             .focused(focused)
-            .class("dir-item")
             .layout_type(LayoutType::Row)
             .toggle_class("selected", selected)
             .toggle_class(
                 "search-match",
                 root.then(Directory::match_indices).map(|idx| !idx.is_empty()),
             )
-            .tooltip(|cx| {
+            .tooltip(move |cx| {
                 Tooltip::new(cx, |cx| {
                     Label::new(
                         cx,
@@ -258,6 +291,7 @@ impl DirectoryItem {
                             .map(|path| path.as_os_str().to_str().unwrap().to_owned()),
                     );
                 })
+                .placement(Placement::BottomStart)
             })
     }
 }
@@ -283,6 +317,10 @@ impl View for DirectoryItem {
                 }
             }
 
+            WindowEvent::MouseDoubleClick(button) if *button == MouseButton::Left => {
+                cx.emit(BrowserEvent::ToggleDirectory(self.path.clone()));
+            }
+
             WindowEvent::FocusIn => {
                 cx.emit(BrowserEvent::SetFocused(Some(self.path.clone())));
             }
@@ -296,7 +334,7 @@ fn treeview<L>(
     lens: L,
     level: u32,
     header: impl Fn(&mut Context, L, u32) + 'static,
-    content: impl Fn(&mut Context, Index<Then<L, Wrapper<children>>, Directory>, u32) + 'static,
+    content: impl Fn(&mut Context, MapRef<Then<L, Wrapper<children>>, Directory>, u32) + 'static,
 ) where
     L: Lens<Target = Directory>,
     L::Source: Model,
