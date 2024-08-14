@@ -1,6 +1,6 @@
 use vizia::prelude::*;
 
-use super::{CollectionID, Database, DatabaseConnectionHandle, DatabaseError};
+use super::{CollectionID, Database, DatabaseConnection, DatabaseError, AUDIO_FILE_EXTENSIONS};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use vizia::prelude::*;

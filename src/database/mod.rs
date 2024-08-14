@@ -1,5 +1,5 @@
 use super::*;
-use crate::state::browser::Directory;
+use crate::data::browser::Directory;
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -154,13 +154,16 @@ impl Database {
 
             // Insert each non-directory child
             for child_file in child_files {
-                let audio_file =
-                    AudioFile::from_path(&child_file.path(), audio_file_count).unwrap();
-                audio_file_count += 1;
+                if let Some(audio_file) = AudioFile::from_path(&child_file.path(), audio_file_count)
+                {
+                    audio_file_count += 1;
 
-                self.insert_audio_file(audio_file);
+                    self.insert_audio_file(audio_file);
+                }
             }
         }
+
+        println!("{}", audio_file_count);
         // Recursively check each directory under the root
 
         self.meta.last_collection_id = collection_count;

@@ -14,8 +14,6 @@ pub const DATABASE_META_DIRECTORY_NAME: &str = ".vsb-meta/";
 pub const DATABASE_DATABASE_NAME: &str = ".vsb-database";
 pub const DATABASE_META_NAME: &str = ".vsb-meta";
 
-pub type Hash = String;
-
 #[derive(Clone, Debug, Serialize, Deserialize, Lens, PartialEq)]
 pub struct DatabaseMetadata {
     pub(super) version: String,

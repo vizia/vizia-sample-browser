@@ -99,6 +99,8 @@ fn main() -> Result<(), AppError> {
         let collections = db.get_all_collections().unwrap();
         let audio_files = db.get_all_audio_files().unwrap();
 
+        println!("{}", audio_files.len());
+
         let root = collections.iter().find(|v| v.parent_collection().is_none()).unwrap();
 
         let root = collections_to_directories(&collections, &audio_files, root.clone());

@@ -1,8 +1,7 @@
 use std::path::{Path, PathBuf};
 
-use super::{Database, DatabaseConnectionHandle, DatabaseError};
+use super::{Database, DatabaseConnection, DatabaseError};
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
 
 pub type CollectionID = usize;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
