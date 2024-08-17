@@ -7,7 +7,7 @@ use vizia::icons::{
 };
 
 use crate::app_data::AppData;
-use crate::data::browser::{BrowserEvent, BrowserState};
+use crate::data::browser_data::{BrowserData, BrowserEvent};
 use crate::data::AppEvent;
 use crate::views::Waveview;
 
@@ -25,16 +25,18 @@ impl WavePanel {
                 // Panel Icon
                 Svg::new(cx, ICON_WAVE_SINE).class("panel-icon");
 
-                Label::new(cx, "Sample Name").right(Stretch(1.0));
+                Label::new(cx, AppData::selected_file_name).right(Stretch(1.0));
 
-                Chip::new(cx, "24 bit");
-                Chip::new(cx, "44100 Hz");
-                Chip::new(cx, "2 channels");
+                Chip::new(cx, AppData::selected_file_bit_depth.map(|bd| format!("{} bit", bd)));
+                Chip::new(cx, AppData::selected_file_sample_rate.map(|bd| format!("{} Hz", bd)));
+                Chip::new(
+                    cx,
+                    AppData::selected_file_num_channels.map(|bd| format!("{} channel", bd)),
+                );
             })
             .class("header");
 
             // Waveform
-            // ScrollView::new(cx, 0.0, 0.0, false, true, |cx| {}).class("waveform");
             HStack::new(cx, |cx| {
                 Waveview::new(cx, AppData::waveform, AppData::zoom_level, AppData::start);
             })
@@ -43,7 +45,7 @@ impl WavePanel {
             // Footer
             HStack::new(cx, |cx| {
                 // toolbar here
-                ButtonGroup::new(cx, |cx| {
+                HStack::new(cx, |cx| {
                     Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_SKIP_BACK));
                     Button::new(cx, |cx| Svg::new(cx, ICON_PLAYER_PLAY))
                         .on_press(|cx| cx.emit(AppEvent::Play));

@@ -1,9 +1,10 @@
+use image::DynamicImage;
 use vizia::prelude::*;
 
 use crate::data::{AppData, AppEvent};
 
-pub fn about_dialog(cx: &mut Context) {
-    Binding::new(cx, AppData::show_about_dialog, |cx, show_about_dialog| {
+pub fn about_dialog(cx: &mut Context, icon: DynamicImage) {
+    Binding::new(cx, AppData::show_about_dialog, move |cx, show_about_dialog| {
         if show_about_dialog.get(cx) {
             Window::popup(cx, true, |cx| {
                 VStack::new(cx, |cx| {
@@ -21,7 +22,8 @@ pub fn about_dialog(cx: &mut Context) {
             .title("About")
             .inner_size((200, 200))
             .resizable(false)
-            .enabled_window_buttons(WindowButtons::CLOSE);
+            .enabled_window_buttons(WindowButtons::CLOSE)
+            .icon(icon.width(), icon.height(), icon.clone().into_bytes());
         }
     });
 }

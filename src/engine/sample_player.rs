@@ -3,6 +3,7 @@ use super::audio_stream::PlaybackContext;
 use basedrop::{Collector, Handle, Shared};
 use ringbuf::traits::{Consumer, Producer, Split};
 use ringbuf::{HeapCons, HeapProd, HeapRb};
+use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
@@ -34,9 +35,9 @@ pub struct SamplePlayerController {
     tx: HeapProd<PlayerAction>,
     playhead: Arc<AtomicUsize>,
     collector: Handle,
-    sample_rate: Option<f64>,
-    num_channels: Option<usize>,
-    num_samples: Option<usize>,
+    pub sample_rate: Option<f64>,
+    pub num_channels: Option<usize>,
+    pub num_samples: Option<usize>,
     pub file: Option<Shared<AudioData>>,
 }
 
@@ -175,9 +176,7 @@ impl SamplePlayerController {
         self.send_msg(PlayerAction::Volume(val));
     }
 
-    pub fn load_file(&mut self, s: &str) {
-        let audio_file =
-            Shared::new(&self.collector, AudioData::open(s).expect("file does not exist"));
+    pub fn load_file(&mut self, audio_file: Shared<AudioData>) {
         self.num_samples = Some(audio_file.num_samples);
         self.num_channels = Some(audio_file.num_channels);
         self.sample_rate = Some(audio_file.sample_rate);

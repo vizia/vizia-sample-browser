@@ -5,10 +5,14 @@ use basedrop::Collector;
 use cpal::traits::StreamTrait;
 use itertools::Itertools;
 use rusqlite::Connection;
-use thiserror::Error;
 use std::{
-    collections::{HashMap, VecDeque}, error::Error, path::{Path, PathBuf}, rc::Rc, sync::{Arc, Mutex}
+    collections::{HashMap, VecDeque},
+    error::Error,
+    path::{Path, PathBuf},
+    rc::Rc,
+    sync::{Arc, Mutex},
 };
+use thiserror::Error;
 use views::smart_table::SmartTable;
 use vizia::{
     icons::{ICON_LIST_SEARCH, ICON_SEARCH},
@@ -35,8 +39,6 @@ use engine::*;
 
 mod menus;
 use menus::*;
-
-mod popup_menu;
 
 #[derive(Debug, Error)]
 #[error("App Error: ")]
@@ -66,7 +68,13 @@ fn main() -> Result<(), AppError> {
     });
 
     // let icon = vizia::vg::Image::from_encoded(vizia::vg::Data::new_bytes(include_bytes!("../resources/icons/icon_256.png")));
-    let icon = image::ImageReader::new(std::io::Cursor::new(include_bytes!("../resources/icons/icon_32.png"))).with_guessed_format()?.decode()?;
+    let icon = image::ImageReader::new(std::io::Cursor::new(include_bytes!(
+        "../resources/icons/icon_32.png"
+    )))
+    .with_guessed_format()?
+    .decode()?;
+
+    let icon_clone = icon.clone();
 
     Application::new(move |cx| {
         // Add resources
@@ -78,7 +86,11 @@ fn main() -> Result<(), AppError> {
             include_str!("../resources/translations/en-GB/strings.ftl"),
         );
 
-        cx.load_image("logo", include_bytes!("../resources/icons/icon_32.png"), ImageRetentionPolicy::Forever);
+        cx.load_image(
+            "logo",
+            include_bytes!("../resources/icons/icon_32.png"),
+            ImageRetentionPolicy::Forever,
+        );
 
         cx.add_translation(langid!("es"), include_str!("../resources/translations/es/strings.ftl"));
 
@@ -87,99 +99,60 @@ fn main() -> Result<(), AppError> {
         // Uncomment to test in Spanish
         // cx.emit(EnvironmentEvent::SetLocale(langid!("es")));
 
-        let headers =
-            vec!["Name", "Tags", "Duration", "Sample Rate", "Bit Depth", "BPM", "Key", "Size"]
-                .iter_mut()
-                .map(|v| v.to_string())
-                .collect::<Vec<_>>();
+        AppData::new(collector, controller).build(cx);
 
-        let mut db =
-            Database::from_directory(Path::new("the-libre-sample-pack/").to_path_buf()).unwrap();
+        about_dialog(cx, icon_clone.clone());
+        settings_dialog(cx, AppData::settings_data, icon_clone.clone());
 
-        let collections = db.get_all_collections().unwrap();
-        let audio_files = db.get_all_audio_files().unwrap();
+        HStack::new(cx, |cx| {
+            menu_bar(cx);
+        })
+        .class("top-bar");
 
-        let root = collections.iter().find(|v| v.parent_collection().is_none()).unwrap();
-
-        let root = collections_to_directories(&collections, &audio_files, root.clone());
-
-        let audio_files = db.get_all_audio_files().unwrap().len();
-
-        AppData {
-            // GUI State
-            browser: BrowserState::new(root),
-            tags: TagsState::default(),
-            browser_width: 300.0,
-            table_height: 300.0,
-            table_headers: headers,
-            table_rows: Vec::new(),
-            search_text: String::new(),
-            selected_sample: None,
-
-            // Database
-            database: Arc::new(Mutex::new(db)),
-
-            // Audio Engine
-            collector,
-            controller,
-
-            waveform: Waveform::new(),
-            zoom_level: 8,
-            start: 0,
-            show_about_dialog: false,
-            show_settings_dialog: false,
-            show_add_collection_dialog: false,
-            settings_data: SettingsData::dummy(),
-        }
-        .build(cx);
-
-        cx.emit(AppEvent::LoadSample(String::from(
-            "C:/Rust/vizia-sample-browser/the-libre-sample-pack/drums/one shot/kicks/couch kick 1 @TeaBoi.wav",
-        )));
-
-        about_dialog(cx);
-        settings_dialog(cx, AppData::settings_data);
-
-        VStack::new(cx, |cx|{
-            HStack::new(cx, |cx|{
-                menu_bar(cx);
-            }).class("top-bar");
-           
-            HStack::new(cx, |cx| {
-                ResizableStack::new(
-                    cx,
-                    AppData::browser_width,
-                    ResizeStackDirection::Right,
-                    |cx, width| cx.emit(AppEvent::SetBrowserWidth(width)),
-                    |cx| {
-                        BrowserPanel::new(cx);
-                        TagsPanel::new(cx);
-                    },
-                )
-                .row_between(Pixels(1.0))
-                .class("browser");
-
-                VStack::new(cx, |cx| {
-                    // Samples Panel
+        HStack::new(cx, |cx| {
+            ResizableStack::new(
+                cx,
+                AppData::browser_width,
+                ResizeStackDirection::Right,
+                |cx, width| cx.emit(AppEvent::SetBrowserWidth(width)),
+                |cx| {
                     ResizableStack::new(
                         cx,
-                        AppData::table_height,
+                        AppData::browser_height,
                         ResizeStackDirection::Bottom,
-                        |cx, height| cx.emit(AppEvent::SetTableHeight(height)),
+                        |cx, height| cx.emit(AppEvent::SetBrowserHeight(height)),
                         |cx| {
-                            SamplesPanel::new(cx);
+                            BrowserPanel::new(cx);
                         },
-                    );
-                    // Waveform Panel
-                    WavePanel::new(cx);
-                })
-                .row_between(Pixels(1.0));
+                    )
+                    .class("browser");
+                    TagsPanel::new(cx);
+                },
+            )
+            .class("side-bar");
+
+            VStack::new(cx, |cx| {
+                // Samples Panel
+                ResizableStack::new(
+                    cx,
+                    AppData::table_height,
+                    ResizeStackDirection::Bottom,
+                    |cx, height| cx.emit(AppEvent::SetTableHeight(height)),
+                    |cx| {
+                        SamplesPanel::new(cx);
+                    },
+                )
+                .class("table");
+                // Waveform Panel
+                WavePanel::new(cx);
             })
-            .col_between(Pixels(1.0))
-            .size(Stretch(1.0));            
-        });
+            .row_between(Pixels(1.0));
+        })
+        .class("content")
+        .col_between(Pixels(1.0))
+        .size(Stretch(1.0));
 
-
+        HStack::new(cx, |cx| {}).class("bottom-bar");
     })
     .title("Vizia Sample Browser")
     .inner_size((1400, 800))
@@ -187,31 +160,4 @@ fn main() -> Result<(), AppError> {
     .run()?;
 
     Ok(())
-}
-
-fn collections_to_directories(
-    collections: &Vec<Collection>,
-    audio_files: &Vec<AudioFile>,
-    current: Collection,
-) -> Directory {
-    let children: Vec<Directory> = collections
-        .iter()
-        .filter(|v| v.parent_collection() == Some(current.id()))
-        .map(|v| collections_to_directories(collections, audio_files, v.clone()))
-        .collect();
-
-    let afs: Vec<&AudioFile> =
-        audio_files.iter().filter(|v| v.collection == current.id()).collect();
-
-    Directory {
-        id: current.id(),
-        parent_id: current.parent_collection(),
-        name: current.name().to_string(),
-        path: current.path().clone(),
-        shown: true,
-        is_open: false,
-        num_files: children.iter().map(|v| v.num_files).sum::<usize>() + afs.len(),
-        children,
-        ..Default::default()
-    }
 }

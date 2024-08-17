@@ -1,17 +1,25 @@
 use std::str::FromStr;
 
+use image::DynamicImage;
 use strum::VariantNames;
 use vizia::prelude::*;
 
 use crate::data::{AppData, AppEvent, SettingsData, SettingsEvent, SettingsPage};
 
-pub fn settings_dialog<L: Lens<Target = SettingsData>>(cx: &mut Context, lens: L) {
+pub fn settings_dialog<L: Lens<Target = SettingsData>>(
+    cx: &mut Context,
+    lens: L,
+    icon: DynamicImage,
+) {
     Binding::new(cx, AppData::show_settings_dialog, move |cx, show_settings_dialog| {
         if show_settings_dialog.get(cx) {
             Window::popup(cx, true, move |cx| {
                 HStack::new(cx, move |cx| {
-                    List::new(cx, StaticLens::new(&SettingsPage::VARIANTS), |cx, _, item| {
-                        Button::new(cx, |cx| Label::new(cx, item.map(|key| Localized::new(key))))
+                    VStack::new(cx, |cx| {
+                        List::new(cx, StaticLens::new(&SettingsPage::VARIANTS), |cx, _, item| {
+                            Button::new(cx, |cx| {
+                                Label::new(cx, item.map(|key| Localized::new(key)))
+                            })
                             .on_press_down(move |cx| {
                                 cx.emit(match SettingsPage::from_str(item.get(cx)).unwrap() {
                                     SettingsPage::General => SettingsEvent::ShowGeneral,
@@ -19,6 +27,7 @@ pub fn settings_dialog<L: Lens<Target = SettingsData>>(cx: &mut Context, lens: L
                                     SettingsPage::Audio => SettingsEvent::ShowAudio,
                                 })
                             });
+                        });
                     });
 
                     Binding::new(
@@ -185,7 +194,8 @@ pub fn settings_dialog<L: Lens<Target = SettingsData>>(cx: &mut Context, lens: L
             .on_create(|cx| cx.emit(WindowEvent::SetPosition((300, 300).into())))
             .class("dialog")
             .title("Settings")
-            .inner_size((800, 600));
+            .inner_size((800, 600))
+            .icon(icon.width(), icon.height(), icon.clone().into_bytes());
         }
     });
 }

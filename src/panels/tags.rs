@@ -6,7 +6,8 @@ use vizia::icons::{
 };
 
 use crate::app_data::AppData;
-use crate::data::{TagsEvent, TagsState};
+use crate::data::{TagsData, TagsEvent};
+use crate::Tag;
 
 #[derive(Lens)]
 pub struct TagsPanel {
@@ -27,21 +28,23 @@ impl TagsPanel {
                 // Panel Icon
                 Svg::new(cx, ICON_TAG).class("panel-icon");
 
-                // SplitButton::new(cx, |cx| {
-                //     Label::new(cx, "Sorting");
-                //     Label::new(cx, "Alphabetical Order");
-                //     Label::new(cx, "Number of Samples");
-                // });
+                Label::new(cx, "TAGS").class("title");
 
                 // Search Toggle Button
                 ToggleButton::new(cx, TagsPanel::search_shown, |cx| Svg::new(cx, ICON_SEARCH))
-                    .on_toggle(|cx| cx.emit(TagsEvent::ToggleShowSearch));
+                    .on_toggle(|cx| cx.emit(TagsEvent::ToggleShowSearch))
+                    .class("toggle-search")
+                    .tooltip(|cx| {
+                        Tooltip::new(cx, |cx| {
+                            Label::new(cx, Localized::new("toggle-search"));
+                        })
+                    });
             })
             .class("header");
 
             // Search Box
             HStack::new(cx, |cx| {
-                Textbox::new(cx, AppData::tags.then(TagsState::search_text))
+                Textbox::new(cx, AppData::tags.then(TagsData::search_text))
                     .on_edit(|cx, text| cx.emit(TagsEvent::Search(text.clone())))
                     .placeholder(Localized::new("search"))
                     .width(Stretch(1.0))
@@ -56,7 +59,7 @@ impl TagsPanel {
                     // Match Case Toggle Button
                     ToggleButton::new(
                         cx,
-                        AppData::tags.then(TagsState::search_case_sensitive),
+                        AppData::tags.then(TagsData::search_case_sensitive),
                         |cx| Svg::new(cx, ICON_LETTER_CASE),
                     )
                     .on_toggle(|cx| cx.emit(TagsEvent::ToggleSearchCaseSensitivity))
@@ -69,7 +72,7 @@ impl TagsPanel {
                     });
 
                     // Filter Results Toggle Button
-                    ToggleButton::new(cx, AppData::tags.then(TagsState::filter_search), |cx| {
+                    ToggleButton::new(cx, AppData::tags.then(TagsData::filter_search), |cx| {
                         Svg::new(cx, ICON_FILTER)
                     })
                     .on_toggle(|cx| cx.emit(TagsEvent::ToggleSearchFilter))
@@ -93,13 +96,26 @@ impl TagsPanel {
             .height(Auto);
 
             // Tags List
-            ScrollView::new(cx, 0.0, 0.0, false, true, |cx| {
-                // TODO - List of tags
+            // TODO - List of tags
+            VirtualList::new(cx, AppData::tags.then(TagsData::tags), 30.0, |cx, index, tag| {
+                HStack::new(cx, |cx| {
+                    Element::new(cx)
+                        .background_color(tag.then(Tag::color).map(|col| Color::from(col.as_str())))
+                        .class("tag-color");
+                    Label::new(cx, tag.then(Tag::name)).class("tag-name");
+                    Label::new(cx, tag.then(Tag::number)).class("tag-num");
+                })
+                .class("tag")
             });
 
             // Footer
             HStack::new(cx, |cx| {
-                Label::new(cx, "52 total tags");
+                Label::new(
+                    cx,
+                    AppData::tags
+                        .then(TagsData::tags)
+                        .map(|tags| format!("{} total tags", tags.len())),
+                );
             })
             .class("footer");
         })

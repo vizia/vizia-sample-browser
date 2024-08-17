@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use vizia::prelude::*;
 use vizia::vg;
 
@@ -8,8 +10,11 @@ use crate::waveform::to_f32;
 use crate::waveform::Waveform;
 use crate::waveform::SAMPLES_PER_PIXEL;
 
-pub struct Waveview<L1: Lens<Target = Waveform>, L2: Lens<Target = usize>, L3: Lens<Target = usize>>
-{
+pub struct Waveview<
+    L1: Lens<Target = Arc<Waveform>>,
+    L2: Lens<Target = usize>,
+    L3: Lens<Target = usize>,
+> {
     waveform_lens: L1,
     zoom_level_lens: L2,
     start_lens: L3,
@@ -18,7 +23,7 @@ pub struct Waveview<L1: Lens<Target = Waveform>, L2: Lens<Target = usize>, L3: L
 
 impl<L1, L2, L3> Waveview<L1, L2, L3>
 where
-    L1: Lens<Target = Waveform>,
+    L1: Lens<Target = Arc<Waveform>>,
     L2: Lens<Target = usize>,
     L3: Lens<Target = usize>,
 {
@@ -30,12 +35,13 @@ where
     ) -> Handle<Self> {
         Self { waveform_lens, zoom_level_lens, start_lens, units_mode: UnitsMode::Decibel }
             .build(cx, |cx| {})
+            .bind(waveform_lens, |mut handle, _| handle.needs_redraw())
     }
 }
 
 impl<L1, L2, L3> View for Waveview<L1, L2, L3>
 where
-    L1: Lens<Target = Waveform>,
+    L1: Lens<Target = Arc<Waveform>>,
     L2: Lens<Target = usize>,
     L3: Lens<Target = usize>,
 {
@@ -86,36 +92,25 @@ where
                         break;
                     }
 
-                    let v_min = to_f32(waveform_data[start + pixel].0);
-                    let v_max = to_f32(waveform_data[start + pixel].1);
-                    let v_mean = to_f32(waveform_data[start + pixel].2);
+                    let v_min = waveform_data[start + pixel].0;
+                    let v_max = waveform_data[start + pixel].1;
 
                     match self.units_mode {
                         UnitsMode::Decibel => {
                             let v_min_db = 1.0 + (20.0 * v_min.abs().log10()).max(-60.0) / 60.0;
                             let v_max_db = 1.0 + (20.0 * v_max.abs().log10()).max(-60.0) / 60.0;
 
-                            let v_mean_db = 1.0 + (20.0 * v_mean.abs().log10()).max(-60.0) / 60.0;
-
                             let v_min_db = if v_min < 0.0 { -v_min_db } else { v_min_db };
 
                             let v_max_db = if v_max < 0.0 { -v_max_db } else { v_max_db };
 
-                            let v_mean_db = if v_mean < 0.0 { -v_mean_db } else { v_mean_db };
-
                             path1.line_to((x + (pixel as f32), y + h / 2.0 - v_min_db * h / 2.0));
                             path1.line_to((x + (pixel as f32), y + h / 2.0 - v_max_db * h / 2.0));
-
-                            path2.move_to((x + (pixel as f32), y + h / 2.0 + v_mean_db * h / 2.0));
-                            path2.line_to((x + (pixel as f32), y + h / 2.0 - v_mean_db * h / 2.0));
                         }
 
                         UnitsMode::Linear => {
                             path1.line_to((x + (pixel as f32), y + h / 2.0 - v_min * h / 2.0));
                             path1.line_to((x + (pixel as f32), y + h / 2.0 - v_max * h / 2.0));
-
-                            path2.move_to((x + (pixel as f32), y + h / 2.0 + v_mean * h / 2.0));
-                            path2.line_to((x + (pixel as f32), y + h / 2.0 - v_mean * h / 2.0));
                         }
                     }
                 }
@@ -124,19 +119,9 @@ where
                 let mut paint = vg::Paint::default();
                 paint.set_color(Color::rgba(50, 50, 255, 255));
                 paint.set_stroke_width(1.0);
-                paint.set_anti_alias(false);
+                paint.set_anti_alias(true);
                 paint.set_style(vg::PaintStyle::Stroke);
                 canvas.draw_path(&mut path1, &paint);
-
-                // Draw rms paths
-                if zoom_level < 5 {
-                    let mut paint = vg::Paint::default();
-                    paint.set_color(Color::rgba(80, 80, 255, 255));
-                    paint.set_stroke_width(1.0);
-                    paint.set_anti_alias(false);
-                    paint.set_style(vg::PaintStyle::Stroke);
-                    canvas.draw_path(&mut path2, &paint);
-                }
             }
         }
     }

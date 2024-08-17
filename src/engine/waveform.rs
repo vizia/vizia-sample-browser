@@ -14,7 +14,7 @@ pub const SAMPLES_PER_PIXEL: [usize; 9] = [4410, 1764, 882, 441, 147, 49, 21, 9,
 #[derive(Data, Clone, PartialEq)]
 pub struct Waveform {
     pub index: Vec<usize>,
-    pub data: Vec<(u16, u16, u16)>,
+    pub data: Vec<(f32, f32)>,
 }
 
 impl Waveform {
@@ -43,9 +43,7 @@ impl Waveform {
                     .iter()
                     .max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))
                     .unwrap();
-                let v_mean: f32 =
-                    (chunk.iter().map(|s| s * s).sum::<f32>() / chunk.len() as f32).sqrt();
-                self.data.push((to_u8(v_min), to_u8(v_max), to_u8(v_mean)));
+                self.data.push((v_min, v_max));
             }
         }
     }
@@ -64,19 +62,17 @@ impl Waveform {
                         .iter()
                         .max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))
                         .unwrap();
-                    let v_mean: f32 =
-                        (chunk.iter().map(|s| s * s).sum::<f32>() / chunk.len() as f32).sqrt();
                     if last + idx < self.data.len() {
-                        self.data[last + idx] = (to_u8(v_min), to_u8(v_max), to_u8(v_mean))
+                        self.data[last + idx] = (v_min, v_max)
                     } else {
-                        self.data.push((to_u8(v_min), to_u8(v_max), to_u8(v_mean)));
+                        self.data.push((v_min, v_max));
                     }
                 }
             }
         }
     }
 
-    pub fn get_data(&self, level: usize) -> Option<&[(u16, u16, u16)]> {
+    pub fn get_data(&self, level: usize) -> Option<&[(f32, f32)]> {
         if !self.index.is_empty() {
             let index = self.index[level];
             let next_index = if level < SAMPLES_PER_PIXEL.len() {
