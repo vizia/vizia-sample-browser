@@ -1,9 +1,11 @@
-use super::prelude::Database;
+use super::prelude::*;
 
 pub mod get_audio_files;
 pub mod get_collections;
 pub mod get_tags;
 pub mod insert;
+
+pub mod comparator;
 
 const TEST_DIRECTORY: &str = "test_files/";
 const TEST_META_DIRECTORY: &str = "test_files/.vsb-meta/";
@@ -16,9 +18,12 @@ fn init_test_database() -> Database {
 
     let mut handle = Database::from_connection("", Some(Connection::open_in_memory().unwrap()));
     handle.get_connection().unwrap().execute_batch(include_str!("../sqls/schema.sql")).unwrap();
-    handle.get_connection().unwrap().execute_batch(include_str!("../sqls/test.sql")).unwrap();
 
     handle
+}
+
+fn insert_test_data(db: &mut Database) {
+    db.get_connection().unwrap().execute_batch(include_str!("../sqls/test.sql")).unwrap();
 }
 
 pub fn check_meta_directory_exists() -> bool {

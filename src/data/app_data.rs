@@ -13,10 +13,10 @@ use crate::{
         TagsData,
     },
     database::prelude::{
-        AudioFile, CollectionID, Database, DatabaseAudioFileHandler, DatabaseCollectionHandler,
+        AudioFile, CollectionID, Database, DatabaseAudioFileHandler, DatabaseCollection,
     },
     engine::{SamplePlayerController, Waveform},
-    AudioData, Collection, DatabaseTagHandler, Tag,
+    AudioData, Collection, DatabaseTags, Tag,
 };
 
 use super::{SettingsData, TableData};
