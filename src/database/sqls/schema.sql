@@ -30,7 +30,8 @@ CREATE TABLE audio_files (
 CREATE TABLE tags (
     id                  integer PRIMARY KEY,
     name                nvarchar(255),
-    color               nvarchar(8)
+    color               nvarchar(8),
+    number              integer
 );
 
 CREATE TABLE audio_files_tags (

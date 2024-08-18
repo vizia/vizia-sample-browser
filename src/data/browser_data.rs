@@ -10,10 +10,8 @@ use std::{
 };
 use vizia::prelude::*;
 
-use self::browser_state_derived_lenses::libraries;
-
 #[derive(Debug, Lens, Clone, Default)]
-pub struct BrowserState {
+pub struct BrowserData {
     pub libraries: Vec<Directory>,
     pub selected: HashSet<PathBuf>,
     pub focused: Option<PathBuf>,
@@ -22,9 +20,9 @@ pub struct BrowserState {
     pub search_case_sensitive: bool,
 }
 
-impl BrowserState {
-    pub fn new(directory: Directory) -> Self {
-        Self { libraries: vec![directory], ..Default::default() }
+impl BrowserData {
+    pub fn new() -> Self {
+        Self { ..Default::default() }
     }
 }
 
@@ -35,10 +33,8 @@ pub enum BrowserEvent {
     Deselect,
     AddSelection(PathBuf),
     SetFocused(Option<PathBuf>),
-    #[allow(dead_code)]
-    FocusNext,
-    #[allow(dead_code)]
-    FocusPrev,
+    SelectNext,
+    SelectPrev,
     ToggleDirectory(PathBuf),
     ExpandDirectory,
     CollapseDirectory,
@@ -60,7 +56,7 @@ pub struct Directory {
     pub shown: bool,
 }
 
-impl Model for BrowserState {
+impl Model for BrowserData {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|browser_event, _| match browser_event {
             BrowserEvent::Search(search_text) => {
@@ -121,6 +117,7 @@ impl Model for BrowserState {
             BrowserEvent::Select(path, collection) => {
                 self.selected.clear();
                 self.selected.insert(path.clone());
+                self.focused = Some(path.clone());
                 cx.emit(AppEvent::ViewCollection(*collection));
             }
 
@@ -138,23 +135,27 @@ impl Model for BrowserState {
             }
 
             // Move focus the next directory item
-            BrowserEvent::FocusNext => {
+            BrowserEvent::SelectNext => {
                 if let Some(focused) = &self.focused {
                     let next = recursive_next(&self.libraries[0], None, focused);
                     if let RetItem::Found(next_dir) = next {
+                        self.selected.clear();
+                        self.selected.insert(next_dir.path.clone());
                         self.focused = Some(next_dir.path.clone());
-                        cx.focus_next();
+                        //cx.focus_next();
                     }
                 }
             }
 
             // Move selection the previous directory item
-            BrowserEvent::FocusPrev => {
+            BrowserEvent::SelectPrev => {
                 if let Some(focused) = &self.focused {
                     let prev = recursive_prev(&self.libraries[0], None, focused);
                     if let RetItem::Found(prev_dir) = prev {
+                        self.selected.clear();
+                        self.selected.insert(prev_dir.path.clone());
                         self.focused = Some(prev_dir.path.clone());
-                        cx.focus_prev();
+                        //cx.focus_prev();
                     }
                 }
             }

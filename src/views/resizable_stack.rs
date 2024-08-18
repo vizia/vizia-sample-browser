@@ -6,7 +6,7 @@ pub enum ResizeStackDirection {
     Bottom,
 }
 
-// A view which can be resized by clicking and dragging from the right edge of the view.
+// A view which can be resized by clicking and dragging from the right/bottom edge of the view.
 #[derive(Lens)]
 pub struct ResizableStack {
     // State which tracks whether the edge of the view is being dragged.

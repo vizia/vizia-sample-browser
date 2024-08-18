@@ -10,8 +10,8 @@ use vizia::icons::{
 use vizia::prelude::*;
 
 use crate::app_data::AppData;
-use crate::data::browser::directory_derived_lenses::children;
-use crate::data::browser::*;
+use crate::data::browser_data::directory_derived_lenses::children;
+use crate::data::browser_data::*;
 use crate::database::prelude::CollectionID;
 
 #[derive(Lens)]
@@ -33,10 +33,13 @@ impl BrowserPanel {
                 // Panel Icon
                 Svg::new(cx, ICON_FOLDER_OPEN).class("panel-icon");
 
+                Label::new(cx, "COLLECTIONS").class("title");
+
                 // Search Toggle Button
                 ToggleButton::new(cx, BrowserPanel::search_shown, |cx| Svg::new(cx, ICON_SEARCH))
                     .on_toggle(|cx| cx.emit(BrowserEvent::ToggleShowSearch))
                     .name(Localized::new("toggle-search"))
+                    .class("toggle-search")
                     .tooltip(|cx| {
                         Tooltip::new(cx, |cx| {
                             Label::new(cx, Localized::new("toggle-search"));
@@ -47,7 +50,7 @@ impl BrowserPanel {
 
             // Search Box
             HStack::new(cx, |cx| {
-                Textbox::new(cx, AppData::browser.then(BrowserState::search_text))
+                Textbox::new(cx, AppData::browser.then(BrowserData::search_text))
                     .on_edit(|cx, text| cx.emit(BrowserEvent::Search(text.clone())))
                     .placeholder(Localized::new("search"))
                     .width(Stretch(1.0))
@@ -62,7 +65,7 @@ impl BrowserPanel {
                     // Match Case Toggle Button
                     ToggleButton::new(
                         cx,
-                        AppData::browser.then(BrowserState::search_case_sensitive),
+                        AppData::browser.then(BrowserData::search_case_sensitive),
                         |cx| Svg::new(cx, ICON_LETTER_CASE),
                     )
                     .on_toggle(|cx| cx.emit(BrowserEvent::ToggleSearchCaseSensitivity))
@@ -77,7 +80,7 @@ impl BrowserPanel {
                     // Filter Results Toggle Button
                     ToggleButton::new(
                         cx,
-                        AppData::browser.then(BrowserState::filter_search),
+                        AppData::browser.then(BrowserData::filter_search),
                         |cx| Svg::new(cx, ICON_FILTER),
                     )
                     .on_toggle(|cx| cx.emit(BrowserEvent::ToggleSearchFilter))
@@ -100,17 +103,19 @@ impl BrowserPanel {
             .col_between(Pixels(8.0))
             .height(Auto);
 
-            // Folder TreeView
-            ScrollView::new(cx, 0.0, 0.0, false, true, |cx| {
-                treeview(
-                    cx,
-                    AppData::browser.then(BrowserState::libraries.idx(0)),
-                    0,
-                    directory,
-                    |cx, item, level| {
-                        treeview(cx, item, level, directory, |cx, item, level| {
-                            treeview(cx, item, level, directory, |cx, item, level| {
-                                treeview(cx, item, level, directory, |cx, item, level| {
+            Binding::new(
+                cx,
+                AppData::browser.then(BrowserData::libraries).map(|libraries| libraries.is_empty()),
+                |cx, empty| {
+                    if !empty.get(cx) {
+                        // Folder TreeView
+                        ScrollView::new(cx, 0.0, 0.0, false, true, |cx| {
+                            treeview(
+                                cx,
+                                AppData::browser.then(BrowserData::libraries.idx(0)),
+                                0,
+                                directory,
+                                |cx, item, level| {
                                     treeview(cx, item, level, directory, |cx, item, level| {
                                         treeview(cx, item, level, directory, |cx, item, level| {
                                             treeview(
@@ -132,8 +137,32 @@ impl BrowserPanel {
                                                                 directory,
                                                                 |cx, item, level| {
                                                                     treeview(
+                                                                        cx,
+                                                                        item,
+                                                                        level,
+                                                                        directory,
+                                                                        |cx, item, level| {
+                                                                            treeview(
+                                                        cx,
+                                                        item,
+                                                        level,
+                                                        directory,
+                                                        |cx, item, level| {
+                                                            treeview(
+                                                                cx,
+                                                                item,
+                                                                level,
+                                                                directory,
+                                                                |cx, item, level| {
+                                                                    treeview(
                                                                         cx, item, level, directory,
                                                                         directory,
+                                                                    );
+                                                                },
+                                                            );
+                                                        },
+                                                    );
+                                                                        },
                                                                     );
                                                                 },
                                                             );
@@ -143,12 +172,12 @@ impl BrowserPanel {
                                             );
                                         });
                                     });
-                                });
-                            });
+                                },
+                            );
                         });
-                    },
-                );
-            });
+                    }
+                },
+            );
 
             // // Footer
             // HStack::new(cx, |cx| {
@@ -174,8 +203,8 @@ impl View for BrowserPanel {
             WindowEvent::KeyDown(code, _) => match code {
                 Code::ArrowLeft => cx.emit(BrowserEvent::CollapseDirectory),
                 Code::ArrowRight => cx.emit(BrowserEvent::ExpandDirectory),
-                Code::ArrowDown => cx.emit(BrowserEvent::FocusNext),
-                Code::ArrowUp => cx.emit(BrowserEvent::FocusPrev),
+                Code::ArrowDown => cx.emit(BrowserEvent::SelectNext),
+                Code::ArrowUp => cx.emit(BrowserEvent::SelectPrev),
                 _ => {}
             },
 
@@ -198,11 +227,11 @@ where
         let file_path3 = file_path.clone();
 
         let selected_lens = AppData::browser
-            .then(BrowserState::selected)
+            .then(BrowserData::selected)
             .map(move |selected| selected.contains(&file_path));
 
         let focused_lens = AppData::browser
-            .then(BrowserState::focused)
+            .then(BrowserData::focused)
             .map(move |focused| focused == &Some(file_path2.clone()));
 
         DirectoryItem::new(cx, root, selected_lens, focused_lens, file_path3)
@@ -240,8 +269,6 @@ impl DirectoryItem {
                     }))
                     .on_press(move |cx| {
                         cx.emit(BrowserEvent::ToggleDirectory(path.clone()));
-                        cx.emit(BrowserEvent::SetFocused(Some(path.clone())));
-                        cx.emit(BrowserEvent::Select(path.clone(), id));
                     })
                     .cursor(CursorIcon::Hand);
 
@@ -302,18 +329,20 @@ impl View for DirectoryItem {
     }
 
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
-        event.map(|window_event, _| match window_event {
+        event.map(|window_event, meta| match window_event {
             WindowEvent::KeyDown(code, _) => match code {
                 Code::Escape => cx.emit(BrowserEvent::Deselect),
                 _ => {}
             },
             WindowEvent::Press { mouse: _ } => {
-                cx.emit(BrowserEvent::SetFocused(Some(self.path.clone())));
+                if meta.target == cx.current() {
+                    cx.emit(BrowserEvent::SetFocused(Some(self.path.clone())));
 
-                if cx.modifiers().contains(Modifiers::CTRL) {
-                    cx.emit(BrowserEvent::AddSelection(self.path.clone()));
-                } else {
-                    cx.emit(BrowserEvent::Select(self.path.clone(), self.collection));
+                    if cx.modifiers().contains(Modifiers::CTRL) {
+                        cx.emit(BrowserEvent::AddSelection(self.path.clone()));
+                    } else {
+                        cx.emit(BrowserEvent::Select(self.path.clone(), self.collection));
+                    }
                 }
             }
 
@@ -364,7 +393,7 @@ fn treeview<L>(
                             //     .class("dir-line");
                             // .toggle_class(
                             //     "focused",
-                            //     AppData::browser.then(BrowserState::selected).map(move |selected| {
+                            //     AppData::browser.then(BrowserData::selected).map(move |selected| {
                             //         if let Some(path) = &file_path1 {
                             //             if let Some(selected) = selected {
                             //                 if let Some(dir) = dir_path(selected) {

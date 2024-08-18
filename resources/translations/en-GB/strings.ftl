@@ -6,8 +6,20 @@ toggle-search = Show/Hide search
 file = File
 add-collection = Add Collection...
 open-collection = Open Collection...
+quit = Quit
 
-export = Export
+playback = Playback
+play-selected = Play Selected Sample
+stop = Stop Playback
+toggle-loop = Toggle Loop
+toggle-autoplay = Toggle Autoplay
+prev-sample = Previous Sample
+next-sample = Next Sample
+
+view = View
+
+help = Help
+about = About...
 
 settings = Settings
 general = General
@@ -18,5 +30,3 @@ input-device = Input Device
 output-device = Output Device
 
 
-help = Help
-about = About

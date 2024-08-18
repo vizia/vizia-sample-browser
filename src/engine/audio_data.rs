@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use super::utils::deinterleave;
 use hound::{SampleFormat, WavReader};
 
@@ -11,6 +13,8 @@ pub struct AudioData {
     pub num_channels: usize,
     /// number of samples in the audio file.
     pub num_samples: usize,
+
+    pub bits_per_sample: usize,
 }
 
 impl AudioData {
@@ -23,7 +27,7 @@ impl AudioData {
     }
 
     /// open a file
-    pub fn open(path: &str) -> Result<Self, hound::Error> {
+    pub fn open(path: impl AsRef<Path>) -> Result<Self, hound::Error> {
         let mut reader = WavReader::open(path)?;
         let spec = reader.spec();
         let mut data = Vec::with_capacity((spec.channels as usize) * (reader.duration() as usize));
@@ -61,6 +65,7 @@ impl AudioData {
             sample_rate: spec.sample_rate as f64,
             num_channels,
             num_samples,
+            bits_per_sample: spec.bits_per_sample as usize,
         })
     }
 }
