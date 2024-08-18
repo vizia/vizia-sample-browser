@@ -1,5 +1,5 @@
 use super::*;
-use crate::data::browser::Directory;
+use crate::data::browser_data::Directory;
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use std::{
