@@ -1,10 +1,14 @@
 use std::{
+    collections::HashSet,
     path::{Path, PathBuf},
     sync::{Arc, Mutex, MutexGuard},
 };
 
-use basedrop::{Collector, Shared};
+use basedrop::{Collector, Owned, Shared};
+use creek::{Decoder, ReadDiskStream, ReadStreamOptions, SymphoniaDecoder};
 use rfd::FileDialog;
+use ron::de::from_reader;
+use serde::{Deserialize, Serialize};
 use vizia::prelude::*;
 
 use crate::{
@@ -16,10 +20,10 @@ use crate::{
         AudioFile, CollectionID, Database, DatabaseAudioFileHandler, DatabaseCollectionHandler,
     },
     engine::{SamplePlayerController, Waveform},
-    AudioData, Collection, DatabaseTagHandler, Tag,
+    AudioData, Collection, DatabaseTagHandler, PlayerState, Tag,
 };
 
-use super::{SettingsData, TableData};
+use super::{Config, SamplesData, SettingsData};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ChannelMode {
@@ -35,7 +39,7 @@ pub enum UnitsMode {
 }
 
 /// The state of the playhead.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PlayState {
     Playing,
     Paused,
@@ -51,18 +55,18 @@ pub enum ZoomMode {
 
 #[derive(Lens)]
 pub struct AppData {
+    timer: Timer,
     // Dialogs
     pub show_about_dialog: bool,
     pub show_settings_dialog: bool,
     pub show_add_collection_dialog: bool,
 
     // GUI State
-    pub browser: BrowserData,
-    pub table: TableData,
-    pub tags: TagsData,
-    pub browser_width: f32,
-    pub browser_height: f32,
-    pub table_height: f32,
+    pub browser_data: BrowserData,
+    pub samples_data: SamplesData,
+    pub tags_data: TagsData,
+
+    pub config: Config,
 
     pub search_text: String,
     pub selected_sample: Option<usize>,
@@ -75,15 +79,14 @@ pub struct AppData {
     // Audio Engine
     #[lens(ignore)]
     pub collector: Collector,
-    #[lens(ignore)]
+
     pub controller: SamplePlayerController,
 
     // Audio GUI State
-    pub waveform: Arc<Waveform>,
+    pub waveform: Option<Arc<Waveform>>,
     pub zoom_level: usize,
     pub start: usize,
 
-    pub should_loop: bool,
     pub should_autoplay: bool,
 
     pub selected_file_name: String,
@@ -93,15 +96,16 @@ pub struct AppData {
 }
 
 impl AppData {
-    pub fn new(collector: Collector, controller: SamplePlayerController) -> Self {
+    pub fn new(collector: Collector, controller: SamplePlayerController, timer: Timer) -> Self {
         Self {
+            timer,
             // GUI State
-            browser: BrowserData::new(),
-            table: TableData::new(),
-            tags: TagsData::default(),
-            browser_width: 300.0,
-            table_height: 550.0,
-            browser_height: 500.0,
+            browser_data: BrowserData::new(),
+            samples_data: SamplesData::new(),
+            tags_data: TagsData::default(),
+
+            config: Config::new(),
+
             search_text: String::new(),
             selected_sample: None,
 
@@ -112,14 +116,13 @@ impl AppData {
             collector,
             controller,
 
-            waveform: Arc::new(Waveform::new()),
-            zoom_level: 4,
+            waveform: None,
+            zoom_level: 9,
             start: 0,
             show_about_dialog: false,
             show_settings_dialog: false,
             show_add_collection_dialog: false,
             settings_data: SettingsData::dummy(),
-            should_loop: true,
             should_autoplay: true,
             selected_file_name: String::new(),
             selected_file_sample_rate: 0,
@@ -128,6 +131,10 @@ impl AppData {
         }
     }
 }
+
+pub struct Testy(pub Owned<ReadDiskStream<SymphoniaDecoder>>);
+unsafe impl Send for Testy {}
+unsafe impl Sync for Testy {}
 
 pub enum AppEvent {
     ShowAboutDialog,
@@ -139,9 +146,6 @@ pub enum AppEvent {
 
     ShowOpenCollectionDialog,
 
-    SetBrowserWidth(f32),
-    SetTableHeight(f32),
-    SetBrowserHeight(f32),
     ViewCollection(CollectionID),
     UpdateTable(Vec<AudioFile>),
 
@@ -152,12 +156,16 @@ pub enum AppEvent {
 
     // Audio Control Events
     LoadSample(PathBuf),
-    SampleLoaded(Shared<AudioData>),
+    SampleLoaded(Testy),
+    AppendWaveform(Vec<f32>, usize),
     Play,
     Pause,
     Stop,
     // SeekLeft,
     // SeekRight,
+    Tick,
+    ToggleLooping,
+    ToggleAutoplay,
 }
 
 fn view_collection(id: usize, db: &MutexGuard<Database>, rows: &mut Vec<AudioFile>) {
@@ -174,10 +182,11 @@ fn view_collection(id: usize, db: &MutexGuard<Database>, rows: &mut Vec<AudioFil
 
 impl Model for AppData {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
-        self.browser.event(cx, event);
-        self.table.event(cx, event);
-        self.tags.event(cx, event);
+        self.browser_data.event(cx, event);
+        self.samples_data.event(cx, event);
+        self.tags_data.event(cx, event);
         self.settings_data.event(cx, event);
+        self.config.event(cx, event);
 
         event.take(|app_event, _| match app_event {
             AppEvent::ShowAboutDialog => self.show_about_dialog = true,
@@ -186,9 +195,7 @@ impl Model for AppData {
             AppEvent::HideSettingsDialog => self.show_settings_dialog = false,
             AppEvent::ShowAddCollectionDialog => self.show_add_collection_dialog = true,
             AppEvent::HideAddCollectionDialog => self.show_add_collection_dialog = false,
-            AppEvent::SetBrowserWidth(width) => self.browser_width = width,
-            AppEvent::SetTableHeight(height) => self.table_height = height,
-            AppEvent::SetBrowserHeight(height) => self.browser_height = height,
+
             AppEvent::ViewCollection(id) => {
                 if let Some(database) = &self.database {
                     let database = database.clone();
@@ -200,57 +207,146 @@ impl Model for AppData {
                         cx.emit(AppEvent::UpdateTable(audio_files));
                     });
                 }
-                self.table.selected = None;
+                self.samples_data.selected = None;
             }
 
             AppEvent::UpdateTable(audio_files) => {
-                self.table.table_rows = audio_files;
+                self.samples_data.table_rows = audio_files;
             }
 
             AppEvent::LoadSample(path) => {
                 let collector_handle = self.collector.handle();
+                let path2 = path.clone();
                 cx.spawn(move |cx| {
-                    let audio_file = Shared::new(
-                        &collector_handle,
-                        AudioData::open(path).expect("file does not exist"),
-                    );
-                    cx.emit(AppEvent::SampleLoaded(audio_file));
+                    let opts = ReadStreamOptions {
+                        // The number of prefetch blocks in a cache block. This will cause a cache to be
+                        // used whenever the stream is seeked to a frame in the range:
+                        //
+                        // `[cache_start, cache_start + (num_cache_blocks * block_size))`
+                        //
+                        // If this is 0, then the cache is only used when seeked to exactly `cache_start`.
+                        num_cache_blocks: 20,
+
+                        // The maximum number of caches that can be active in this stream. Keep in mind each
+                        // cache uses some memory (but memory is only allocated when the cache is created).
+                        //
+                        // The default is `1`.
+                        num_caches: 2,
+                        ..Default::default()
+                    };
+
+                    // This is how to calculate the total size of a cache block.
+                    let cache_size = opts.num_cache_blocks * SymphoniaDecoder::DEFAULT_BLOCK_SIZE;
+
+                    // Open the read stream.
+                    let mut read_stream =
+                        ReadDiskStream::<SymphoniaDecoder>::new(path, 0, opts).unwrap();
+
+                    // Cache the start of the file into cache with index `0`.
+                    let _ = read_stream.cache(0, 0);
+
+                    // Tell the stream to seek to the beginning of file. This will also alert the stream to the existence
+                    // of the cache with index `0`.
+                    read_stream.seek(0, Default::default()).unwrap();
+
+                    // Wait until the buffer is filled before sending it to the process thread.
+                    read_stream.block_until_ready().unwrap();
+                    let audio_file = Owned::new(&collector_handle, read_stream);
+                    cx.emit(AppEvent::SampleLoaded(Testy(audio_file)));
+                });
+
+                self.waveform = Some(Arc::new(Waveform::new()));
+
+                cx.spawn(move |cx| {
+                    let opts = ReadStreamOptions {
+                        // The number of prefetch blocks in a cache block. This will cause a cache to be
+                        // used whenever the stream is seeked to a frame in the range:
+                        //
+                        // `[cache_start, cache_start + (num_cache_blocks * block_size))`
+                        //
+                        // If this is 0, then the cache is only used when seeked to exactly `cache_start`.
+                        num_cache_blocks: 20,
+
+                        // The maximum number of caches that can be active in this stream. Keep in mind each
+                        // cache uses some memory (but memory is only allocated when the cache is created).
+                        //
+                        // The default is `1`.
+                        num_caches: 2,
+                        ..Default::default()
+                    };
+
+                    // This is how to calculate the total size of a cache block.
+                    let cache_size = opts.num_cache_blocks * SymphoniaDecoder::DEFAULT_BLOCK_SIZE;
+
+                    // Open the read stream.
+                    let mut read_stream =
+                        ReadDiskStream::<SymphoniaDecoder>::new(path2, 0, opts).unwrap();
+
+                    // Cache the start of the file into cache with index `0`.
+                    let _ = read_stream.cache(0, 0);
+
+                    // Tell the stream to seek to the beginning of file. This will also alert the stream to the existence
+                    // of the cache with index `0`.
+                    read_stream.seek(0, Default::default()).unwrap();
+
+                    let mut pos = 0usize;
+
+                    while pos < read_stream.info().num_frames {
+                        if let Ok(_) = read_stream.block_until_ready() {
+                            if let Ok(ready) = read_stream.is_ready() {
+                                if ready {
+                                    cx.emit(AppEvent::AppendWaveform(
+                                        read_stream.read(8192).unwrap().read_channel(0).to_owned(),
+                                        read_stream.info().num_frames,
+                                    ));
+                                    pos = read_stream.playhead();
+                                }
+                            }
+                        }
+                    }
                 });
             }
 
             AppEvent::SampleLoaded(audio_file) => {
-                self.controller.load_file(audio_file);
+                self.controller.load_file(audio_file.0);
+                self.controller.seek(0);
 
-                if let Some(file) = self.controller.file.as_ref() {
-                    self.selected_file_num_channels = file.num_channels as u32;
-                    self.selected_file_sample_rate = file.sample_rate as u32;
-                    self.selected_file_bit_depth = file.bits_per_sample as u32;
-                    // self.num_of_samples = file.num_samples;
-                    // println!("Length: {} ", self.num_of_samples);
-
-                    let wf = Arc::make_mut(&mut self.waveform);
-
-                    wf.load(&file.data[0..file.num_samples], 800);
-
-                    //self.waveform = *wf;
+                if self.should_autoplay {
+                    self.controller.play();
+                } else {
+                    self.controller.stop();
                 }
-                self.controller.stop();
-                self.controller.seek(0.0);
-                self.controller.play();
+
+                cx.start_timer(self.timer);
+            }
+
+            AppEvent::AppendWaveform(data, total_frames) => {
+                if let Some(waveform) = &mut self.waveform {
+                    let wf = Arc::make_mut(waveform);
+                    let samples_per_pixel =
+                        (total_frames as f32 / self.config.waveview_width).ceil() as usize;
+                    wf.append(data.as_slice(), samples_per_pixel);
+                }
             }
 
             AppEvent::Play => {
-                self.controller.seek(0.0);
-                self.controller.play();
+                if self.controller.play_state == PlayerState::Playing {
+                    self.controller.stop();
+                    cx.stop_timer(self.timer);
+                } else {
+                    self.controller.play();
+                    cx.start_timer(self.timer);
+                }
             }
 
             AppEvent::Pause => {
-                self.controller.stop();
+                self.controller.pause();
+                cx.stop_timer(self.timer);
             }
 
             AppEvent::Stop => {
                 self.controller.stop();
-                self.controller.seek(0.0);
+                cx.stop_timer(self.timer);
             }
 
             AppEvent::ShowOpenCollectionDialog => {
@@ -278,8 +374,10 @@ impl Model for AppData {
 
             AppEvent::CollectionOpened(database, root, tags) => {
                 self.database = Some(Arc::new(Mutex::new(database)));
-                self.browser.libraries.push(root);
-                self.tags.tags = tags;
+                self.config.libraries.insert(root.path.clone());
+                self.config.recents.push(root.path.clone());
+                self.browser_data.libraries.push(root);
+                self.tags_data.tags = tags;
             }
 
             AppEvent::SelectSample(collection_id, name) => {
@@ -295,7 +393,20 @@ impl Model for AppData {
                     }
                 }
             }
+            AppEvent::Tick => {}
+            AppEvent::ToggleLooping => self.controller.toggle_looping(),
+            AppEvent::ToggleAutoplay => self.should_autoplay = !self.should_autoplay,
         });
+
+        event.map(|window_event, _| match window_event {
+            WindowEvent::WindowClose => {
+                self.config.window_position = cx.window_position().into();
+                self.config.window_size = cx.window_size().into();
+                self.config.save();
+            }
+
+            _ => {}
+        })
     }
 }
 

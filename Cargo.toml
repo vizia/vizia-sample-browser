@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-vizia = {git = "https://github.com/vizia/vizia", branch = "skia"}
-# vizia = {path = "../vizia"}
+# vizia = {git = "https://github.com/vizia/vizia", branch = "skia"}
+vizia = {path = "../vizia"}
 rusqlite = { version = "0.32", features = ["bundled", "chrono"] }
 chrono = { version = "0.4.26", features = ["serde"]}
 serde = { version = "1.0.177", features = ["derive"] }
@@ -25,6 +25,8 @@ num-derive = "0.4"
 image = {version = "0.25", default-features = false, features = ["png"]}
 thiserror = "1.0"
 rfd = "0.14"
+creek = "*"
+rubato = "*"
 
 [profile.dev.package."*"]
 opt-level = 3

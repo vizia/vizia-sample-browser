@@ -139,10 +139,7 @@ impl Model for BrowserData {
                 if let Some(focused) = &self.focused {
                     let next = recursive_next(&self.libraries[0], None, focused);
                     if let RetItem::Found(next_dir) = next {
-                        self.selected.clear();
-                        self.selected.insert(next_dir.path.clone());
-                        self.focused = Some(next_dir.path.clone());
-                        //cx.focus_next();
+                        cx.emit(BrowserEvent::Select(next_dir.path.clone(), next_dir.id));
                     }
                 }
             }
@@ -152,10 +149,7 @@ impl Model for BrowserData {
                 if let Some(focused) = &self.focused {
                     let prev = recursive_prev(&self.libraries[0], None, focused);
                     if let RetItem::Found(prev_dir) = prev {
-                        self.selected.clear();
-                        self.selected.insert(prev_dir.path.clone());
-                        self.focused = Some(prev_dir.path.clone());
-                        //cx.focus_prev();
+                        cx.emit(BrowserEvent::Select(prev_dir.path.clone(), prev_dir.id));
                     }
                 }
             }

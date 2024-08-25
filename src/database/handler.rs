@@ -114,6 +114,7 @@ impl Database {
                     duration,
                     spec.sample_rate as f32,
                     spec.bits_per_sample as f32,
+                    spec.channels as f32,
                     None,
                     None,
                     reader.duration() as f32 * spec.channels as f32 * spec.bits_per_sample as f32

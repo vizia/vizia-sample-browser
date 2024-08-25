@@ -3,17 +3,28 @@ use vizia::prelude::*;
 
 use crate::app_data::AppData;
 use crate::database::prelude::AudioFile;
+use crate::menus::samples_panel_menu;
 use crate::views::SmartTable;
-use crate::TableData;
+use crate::{SampleEvent, SamplesData};
 
 pub struct SamplesPanel {}
 
 impl SamplesPanel {
     pub fn new(cx: &mut Context) -> Handle<Self> {
         Self {}.build(cx, |cx| {
-            HStack::new(cx, |cx| {
-                Svg::new(cx, ICON_LIST_SEARCH).class("panel-icon");
+            Keymap::from(vec![
+                (
+                    KeyChord::new(Modifiers::empty(), Code::ArrowDown),
+                    KeymapEntry::new((), |cx| cx.emit(SampleEvent::SelectNext)),
+                ),
+                (
+                    KeyChord::new(Modifiers::empty(), Code::ArrowUp),
+                    KeymapEntry::new((), |cx| cx.emit(SampleEvent::SelectPrev)),
+                ),
+            ])
+            .build(cx);
 
+            HStack::new(cx, |cx| {
                 HStack::new(cx, |cx| {
                     Textbox::new(cx, AppData::search_text)
                         .class("icon-before")
@@ -30,6 +41,8 @@ impl SamplesPanel {
                 .child_top(Stretch(1.0))
                 .child_bottom(Stretch(1.0))
                 .width(Stretch(1.0));
+
+                samples_panel_menu(cx);
             })
             .col_between(Pixels(8.0))
             .height(Auto)
@@ -37,8 +50,8 @@ impl SamplesPanel {
 
             SmartTable::new(
                 cx,
-                AppData::table.then(TableData::table_headers),
-                AppData::table.then(TableData::table_rows),
+                AppData::samples_data.then(SamplesData::table_headers),
+                AppData::samples_data.then(SamplesData::table_rows),
                 |cx, row, col_index| {
                     match col_index {
                         // Name
@@ -63,49 +76,62 @@ impl SamplesPanel {
                                     let h = secs / (60 * 60);
                                     let m = (secs / 60) % 60;
                                     let s = secs % 60;
-                                    format!("{:0<2}:{:0<2}:{:0<2}", h, m, s)
+                                    format!("{:0>2}:{:06.3}", m, duration)
                                 }),
                             )
+                            .text_align(TextAlign::Center)
                             .size(Stretch(1.0))
                             .hoverable(false);
                         }
                         // Sample Rate
                         3 => {
                             Label::new(cx, row.then(AudioFile::sample_rate))
+                                .text_align(TextAlign::Center)
                                 .size(Stretch(1.0))
                                 .hoverable(false);
                         }
                         // Bit Depth
                         4 => {
                             Label::new(cx, row.then(AudioFile::bit_depth))
+                                .text_align(TextAlign::Center)
+                                .size(Stretch(1.0))
+                                .hoverable(false);
+                        }
+                        // Num Channels
+                        5 => {
+                            Label::new(cx, row.then(AudioFile::num_channels))
+                                .text_align(TextAlign::Center)
                                 .size(Stretch(1.0))
                                 .hoverable(false);
                         }
                         // BPM
-                        5 => {
+                        6 => {
                             Label::new(
                                 cx,
                                 row.then(AudioFile::bpm).map(|k| {
                                     k.map(|k| format!("{}", k)).unwrap_or(String::from("-"))
                                 }),
                             )
+                            .text_align(TextAlign::Center)
                             .hoverable(false)
                             .size(Stretch(1.0));
                         }
                         // Key
-                        6 => {
+                        7 => {
                             Label::new(
                                 cx,
                                 row.then(AudioFile::key).map(|k| {
                                     k.map(|k| format!("{}", k)).unwrap_or(String::from("-"))
                                 }),
                             )
+                            .text_align(TextAlign::Center)
                             .hoverable(false)
                             .size(Stretch(1.0));
                         }
                         // Size
-                        7 => {
+                        8 => {
                             Label::new(cx, row.then(AudioFile::size))
+                                .text_align(TextAlign::Center)
                                 .hoverable(false)
                                 .size(Stretch(1.0));
                         }

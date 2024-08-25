@@ -2,8 +2,9 @@
 
 use app_data::AppData;
 use basedrop::Collector;
-use cpal::traits::StreamTrait;
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use itertools::Itertools;
+use menus::menu_bar;
 use rusqlite::Connection;
 use std::{
     collections::{HashMap, VecDeque},
@@ -38,7 +39,6 @@ mod engine;
 use engine::*;
 
 mod menus;
-use menus::*;
 
 #[derive(Debug, Error)]
 #[error("App Error: ")]
@@ -52,22 +52,30 @@ fn main() -> Result<(), AppError> {
     // Initialize gc
     let collector = Collector::new();
 
+    let host = cpal::default_host();
+    let output_device = host.default_output_device().expect("no output found");
+    let config = output_device.default_output_config().expect("no default output config").config();
+
+    let sample_rate = config.sample_rate.0 as f64;
+    let num_channels = config.channels as usize;
+
     // Create the sample player and controller
     let (mut player, mut controller) = sample_player(&collector);
 
-    // Initialize state and begin the stream
-    std::thread::spawn(move || {
-        let stream = audio_stream(move |mut context| {
-            player.advance(&mut context);
-        });
+    let callback = move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+        let buffer_size = data.len() / num_channels;
+        let context =
+            PlaybackContext { buffer_size, num_channels, sample_rate, output_buffer: data };
 
-        // TODO - handle error
-        stream.play();
+        player.process(context);
+    };
 
-        std::thread::park();
-    });
+    let stream = output_device
+        .build_output_stream(&config, callback, |err| eprintln!("{}", err), None)
+        .expect("failed to open stream");
 
-    // let icon = vizia::vg::Image::from_encoded(vizia::vg::Data::new_bytes(include_bytes!("../resources/icons/icon_256.png")));
+    stream.play();
+
     let icon = image::ImageReader::new(std::io::Cursor::new(include_bytes!(
         "../resources/icons/icon_32.png"
     )))
@@ -96,10 +104,27 @@ fn main() -> Result<(), AppError> {
 
         cx.emit(EnvironmentEvent::SetThemeMode(AppTheme::BuiltIn(ThemeMode::DarkMode)));
 
+        let timer =
+            cx.add_timer(Duration::from_millis(10), None, |cx, action| cx.emit(AppEvent::Tick));
+
         // Uncomment to test in Spanish
         // cx.emit(EnvironmentEvent::SetLocale(langid!("es")));
 
-        AppData::new(collector, controller).build(cx);
+        AppData::new(collector, controller, timer).build(cx);
+
+        cx.emit(ConfigEvent::Load);
+
+        Keymap::from(vec![
+            (
+                KeyChord::new(Modifiers::empty(), Code::Space),
+                KeymapEntry::new((), |cx| cx.emit(AppEvent::Play)),
+            ),
+            (
+                KeyChord::new(Modifiers::empty(), Code::Escape),
+                KeymapEntry::new((), |cx| cx.emit(AppEvent::Stop)),
+            ),
+        ])
+        .build(cx);
 
         about_dialog(cx, icon_clone.clone());
         settings_dialog(cx, AppData::settings_data, icon_clone.clone());
@@ -112,15 +137,15 @@ fn main() -> Result<(), AppError> {
         HStack::new(cx, |cx| {
             ResizableStack::new(
                 cx,
-                AppData::browser_width,
+                AppData::config.then(Config::browser_width),
                 ResizeStackDirection::Right,
-                |cx, width| cx.emit(AppEvent::SetBrowserWidth(width)),
+                |cx, width| cx.emit(ConfigEvent::SetBrowserWidth(width)),
                 |cx| {
                     ResizableStack::new(
                         cx,
-                        AppData::browser_height,
+                        AppData::config.then(Config::browser_height),
                         ResizeStackDirection::Bottom,
-                        |cx, height| cx.emit(AppEvent::SetBrowserHeight(height)),
+                        |cx, height| cx.emit(ConfigEvent::SetBrowserHeight(height)),
                         |cx| {
                             BrowserPanel::new(cx);
                         },
@@ -135,9 +160,9 @@ fn main() -> Result<(), AppError> {
                 // Samples Panel
                 ResizableStack::new(
                     cx,
-                    AppData::table_height,
+                    AppData::config.then(Config::table_height),
                     ResizeStackDirection::Bottom,
-                    |cx, height| cx.emit(AppEvent::SetTableHeight(height)),
+                    |cx, height| cx.emit(ConfigEvent::SetTableHeight(height)),
                     |cx| {
                         SamplesPanel::new(cx);
                     },
@@ -155,7 +180,8 @@ fn main() -> Result<(), AppError> {
         HStack::new(cx, |cx| {}).class("bottom-bar");
     })
     .title("Vizia Sample Browser")
-    .inner_size((1400, 800))
+    .inner_size(AppData::config.then(Config::window_size))
+    .position(AppData::config.then(Config::window_position))
     .icon(icon.width(), icon.height(), icon.into_bytes())
     .run()?;
 

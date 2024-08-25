@@ -1,6 +1,8 @@
 use crate::utils::interleave;
-use cpal::traits::{DeviceTrait, HostTrait};
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::Stream;
+
+use super::Process;
 
 /// The playback context is used by the audio callback to map data from the audio
 /// file to the playback buffer.
@@ -8,7 +10,7 @@ pub struct PlaybackContext<'a> {
     pub buffer_size: usize,
     pub sample_rate: f64,
     pub num_channels: usize,
-    output_buffer: &'a mut [f32],
+    pub output_buffer: &'a mut [f32],
 }
 
 impl<'a> PlaybackContext<'a> {
@@ -43,18 +45,42 @@ pub fn audio_stream(mut main_callback: impl FnMut(PlaybackContext) + Send + 'sta
             *sample = 0.0;
         }
 
-        let context = PlaybackContext {
-            buffer_size,
-            num_channels,
-            sample_rate,
-            output_buffer: &mut output_buffer,
-        };
+        let context =
+            PlaybackContext { buffer_size, num_channels, sample_rate, output_buffer: data };
 
         main_callback(context);
-        interleave(&output_buffer, data, num_channels);
+        // interleave(&output_buffer, data, num_channels);
     };
 
     output_device
         .build_output_stream(&config, callback, |err| eprintln!("{}", err), None)
         .expect("failed to open stream")
 }
+
+// pub fn spawn_cpal_stream(process: Process) -> cpal::Stream {
+//     // Setup cpal audio output
+
+//     let host = cpal::default_host();
+
+//     let device = host.default_output_device().expect("no output device available");
+
+//     let sample_rate = device.default_output_config().unwrap().sample_rate();
+
+//     let config =
+//         cpal::StreamConfig { channels: 2, sample_rate, buffer_size: cpal::BufferSize::Default };
+
+//     let stream = device
+//         .build_output_stream(
+//             &config,
+//             move |data: &mut [f32], _: &cpal::OutputCallbackInfo| process.process(data),
+//             move |err| {
+//                 eprintln!("{}", err);
+//             },
+//             None,
+//         )
+//         .unwrap();
+
+//     stream.play().unwrap();
+
+//     stream
+// }

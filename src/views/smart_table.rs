@@ -3,7 +3,7 @@ use vizia::{
     prelude::*,
 };
 
-use crate::{data::AppData, AudioFileID, TableData, TableEvent};
+use crate::{data::AppData, AudioFileID, SampleEvent, SamplesData};
 
 pub const CELL_MIN_SIZE_PX: f32 = 100.0;
 
@@ -61,6 +61,7 @@ impl SmartTable {
                 Pixels(100.0),
                 Pixels(100.0),
                 Pixels(100.0),
+                Pixels(100.0),
                 Stretch(1.0),
             ],
             // data: data.get(cx),
@@ -93,14 +94,15 @@ impl SmartTable {
                 .position_type(PositionType::SelfDirected);
             })
             .height(Auto);
+            Divider::new(cx);
             //
             VirtualList::new(cx, rows, 30.0, move |cx, row_index, row| {
                 // Label::new(cx, row.map(|row| format!("{:?}", row)))
                 //     .toggle_class("dark", row_index % 2 == 0)
                 //
 
-                let selected_lens = AppData::table
-                    .then(TableData::selected)
+                let selected_lens = AppData::samples_data
+                    .then(SamplesData::selected)
                     .map(move |selected| *selected == Some(row_index));
 
                 SmartTableRow::new(cx, row, headers, row_index, content)
@@ -351,10 +353,12 @@ impl SmartTableRow {
                 })
                 .width(Auto)
                 .height(Stretch(1.0))
-                .layout_type(LayoutType::Row);
+                .layout_type(LayoutType::Row)
+                .hoverable(false);
             })
             .min_width(Percentage(100.0))
             .toggle_class("odd", row_index % 2 == 0)
+            .navigable(true)
             .focusable(true)
             .hoverable(true)
             .layout_type(LayoutType::Row)
@@ -369,7 +373,8 @@ impl View for SmartTableRow {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|e, _| match e {
             WindowEvent::PressDown { mouse } => {
-                cx.emit(TableEvent::Select(self.row_index));
+                cx.focus();
+                cx.emit(SampleEvent::Select(self.row_index));
             }
 
             _ => {}

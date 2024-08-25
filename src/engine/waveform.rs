@@ -1,40 +1,41 @@
 use std::cmp::Ordering;
 use vizia::prelude::Data;
 
-pub fn to_u8(val: f32) -> u16 {
-    (((val + 1.0) / 2.0) * std::u16::MAX as f32) as u16
-}
-
-pub fn to_f32(val: u16) -> f32 {
-    ((val as f32 / std::u16::MAX as f32) * 2.0) - 1.0
-}
-
-pub const SAMPLES_PER_PIXEL: [usize; 9] = [4410, 1764, 882, 441, 147, 49, 21, 9, 3];
-
 #[derive(Data, Clone, PartialEq)]
 pub struct Waveform {
-    pub index: Vec<usize>,
     pub data: Vec<(f32, f32)>,
+    pub samples_per_pixel: usize,
+    pub remainder: Vec<f32>,
 }
 
 impl Waveform {
     pub fn new() -> Self {
-        Self { index: Vec::new(), data: Vec::new() }
+        Self { data: Vec::new(), samples_per_pixel: 0, remainder: Vec::new() }
     }
 
     pub fn load(&mut self, audio: &[f32], num_of_pixels: usize) {
         self.data.clear();
-        self.index.clear();
-        for level in 0..SAMPLES_PER_PIXEL.len() + 1 {
-            self.index.push(self.data.len());
-            let samples_per_pixel = if level == SAMPLES_PER_PIXEL.len() {
-                audio.len() / num_of_pixels
-            } else {
-                SAMPLES_PER_PIXEL[level]
-            };
 
-            let chunks = audio.chunks(samples_per_pixel);
-            for chunk in chunks {
+        self.samples_per_pixel = (audio.len() as f32 / num_of_pixels as f32).ceil() as usize;
+
+        let chunks = audio.chunks(self.samples_per_pixel);
+        for chunk in chunks {
+            let v_min =
+                *chunk.iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal)).unwrap();
+            let v_max =
+                *chunk.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal)).unwrap();
+            self.data.push((v_min, v_max));
+        }
+    }
+
+    pub fn append(&mut self, data: &[f32], samples_per_pixel: usize) {
+        self.samples_per_pixel = samples_per_pixel;
+        self.remainder.extend(data.iter());
+
+        let mut new_remainder = Vec::new();
+        let chunks = self.remainder.chunks(samples_per_pixel);
+        for chunk in chunks {
+            if chunk.len() == samples_per_pixel {
                 let v_min = *chunk
                     .iter()
                     .min_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))
@@ -44,48 +45,39 @@ impl Waveform {
                     .max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))
                     .unwrap();
                 self.data.push((v_min, v_max));
+            } else {
+                new_remainder = chunk.to_owned();
             }
         }
+
+        self.remainder = new_remainder;
     }
 
-    pub fn set_num_pixels(&mut self, audio: &[f32], num_of_pixels: usize) {
-        if num_of_pixels > 0 {
-            if let Some(last) = self.index.last() {
-                let samples_per_pixel = audio.len() / num_of_pixels;
-                let chunks = audio.chunks(samples_per_pixel);
-                for (idx, chunk) in chunks.enumerate() {
-                    let v_min = *chunk
-                        .iter()
-                        .min_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))
-                        .unwrap();
-                    let v_max = *chunk
-                        .iter()
-                        .max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))
-                        .unwrap();
-                    if last + idx < self.data.len() {
-                        self.data[last + idx] = (v_min, v_max)
-                    } else {
-                        self.data.push((v_min, v_max));
-                    }
-                }
-            }
-        }
-    }
+    // pub fn set_num_pixels(&mut self, audio: &[f32], num_of_pixels: usize) {
+    //     if num_of_pixels > 0 {
+    //         if let Some(last) = self.index.last() {
+    //             let samples_per_pixel = audio.len() / num_of_pixels;
+    //             let chunks = audio.chunks(samples_per_pixel);
+    //             for (idx, chunk) in chunks.enumerate() {
+    //                 let v_min = *chunk
+    //                     .iter()
+    //                     .min_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))
+    //                     .unwrap();
+    //                 let v_max = *chunk
+    //                     .iter()
+    //                     .max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))
+    //                     .unwrap();
+    //                 if last + idx < self.data.len() {
+    //                     self.data[last + idx] = (v_min, v_max)
+    //                 } else {
+    //                     self.data.push((v_min, v_max));
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
 
     pub fn get_data(&self, level: usize) -> Option<&[(f32, f32)]> {
-        if !self.index.is_empty() {
-            let index = self.index[level];
-            let next_index = if level < SAMPLES_PER_PIXEL.len() {
-                self.index[level + 1]
-            } else {
-                self.data.len()
-            };
-
-            //println!("level: {} index: {} next: {} {}", level, index, next_index, self.data[index..next_index-1].len());
-
-            return Some(&self.data[index..next_index - 1]);
-        }
-
-        None
+        return Some(&self.data);
     }
 }
