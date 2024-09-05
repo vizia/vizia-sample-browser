@@ -64,6 +64,10 @@ menubutton {
     corner-radius: 0px;
 }
 
+submenu {
+    background-color: transparent;
+}
+
 menubutton label {
     width: 1s;
     overflow: hidden;
@@ -152,7 +156,7 @@ divider {
 }
 
 popup {
-    background-color: #353535;
+    background-color: #d61515;
 }
 
 submenu.panel-menu {
@@ -372,6 +376,7 @@ toggle-button {
 toggle-button > svg {
     fill: #ebebeb;
     size: 1s;
+    space: 4px;
 }
 
 toggle-button:checked {
@@ -766,13 +771,14 @@ resize-handle:disabled {
 .transport-controls button {
     size: 28px;
     background-color: transparent;
+    child-space: 1s;
 }
 
 .transport-controls button:hover {
     background-color: #252525;
 }
 
-.transport-controls button > svg {
+.transport-controls svg {
     fill: #ebebeb;
     size: 20px;
 }

@@ -9,7 +9,10 @@ use vizia::{
     prelude::*,
 };
 
-use crate::{data::AppData, AppEvent, Config, SampleEvent, SamplePlayerController, SettingsEvent};
+use crate::{
+    data::AppData, AppEvent, Config, ConfigEvent, SampleEvent, SamplePlayerController, SamplesData,
+    SettingsEvent,
+};
 
 pub fn file_menu(cx: &mut Context) {
     Submenu::new(
@@ -229,34 +232,43 @@ pub fn view_menu(cx: &mut Context) {
                 |_| {},
                 |cx| {
                     HStack::new(cx, |cx| {
-                        Svg::new(cx, ICON_CHECK).class("icon");
+                        Svg::new(cx, ICON_CHECK)
+                            .visibility(AppData::config.then(Config::browser_visible))
+                            .class("icon");
                         Label::new(cx, Localized::new("show-collections"));
                         Label::new(cx, "Ctrl+Shift+E").class("shortcut");
                     })
                 },
-            );
+            )
+            .on_press(|cx| cx.emit(ConfigEvent::ToggleBrowserVisibility));
             MenuButton::new(
                 cx,
                 |_| {},
                 |cx| {
                     HStack::new(cx, |cx| {
-                        Svg::new(cx, ICON_CHECK).class("icon");
+                        Svg::new(cx, ICON_CHECK)
+                            .visibility(AppData::config.then(Config::tags_visible))
+                            .class("icon");
                         Label::new(cx, Localized::new("show-tags"));
                         Label::new(cx, "Ctrl+Shift+T").class("shortcut");
                     })
                 },
-            );
+            )
+            .on_press(|cx| cx.emit(ConfigEvent::ToggleTagsVisibility));
             MenuButton::new(
                 cx,
                 |_| {},
                 |cx| {
                     HStack::new(cx, |cx| {
-                        Svg::new(cx, ICON_CHECK).class("icon");
+                        Svg::new(cx, ICON_CHECK)
+                            .visibility(AppData::config.then(Config::waveview_visible))
+                            .class("icon");
                         Label::new(cx, Localized::new("show-waveview"));
                         Label::new(cx, "Ctrl+Shift+W").class("shortcut");
                     })
                 },
-            );
+            )
+            .on_press(|cx| cx.emit(ConfigEvent::ToggleWaveviewVisibility));
 
             Divider::new(cx);
 
@@ -327,89 +339,145 @@ pub fn columns_menu(cx: &mut Context) {
                 |_| {},
                 |cx| {
                     HStack::new(cx, |cx| {
-                        Svg::new(cx, ICON_CHECK).class("icon");
-                        Label::new(cx, Localized::new("path"));
+                        Svg::new(cx, ICON_CHECK)
+                            .visibility(
+                                AppData::samples_data
+                                    .then(SamplesData::table_headers)
+                                    .map(|headers| headers[0].1),
+                            )
+                            .class("icon");
+                        Label::new(cx, Localized::new("name"));
                         Label::new(cx, "").class("shortcut");
                     })
                 },
-            );
+            )
+            .on_press(|cx| cx.emit(SampleEvent::ToggleColumn(0)));
             MenuButton::new(
                 cx,
                 |_| {},
                 |cx| {
                     HStack::new(cx, |cx| {
-                        Svg::new(cx, ICON_CHECK).class("icon");
+                        Svg::new(cx, ICON_CHECK)
+                            .visibility(
+                                AppData::samples_data
+                                    .then(SamplesData::table_headers)
+                                    .map(|headers| headers[1].1),
+                            )
+                            .class("icon");
                         Label::new(cx, Localized::new("tags"));
                         Label::new(cx, "").class("shortcut");
                     })
                 },
-            );
+            )
+            .on_press(|cx| cx.emit(SampleEvent::ToggleColumn(1)));
             MenuButton::new(
                 cx,
                 |_| {},
                 |cx| {
                     HStack::new(cx, |cx| {
-                        Svg::new(cx, ICON_CHECK).class("icon");
+                        Svg::new(cx, ICON_CHECK)
+                            .visibility(
+                                AppData::samples_data
+                                    .then(SamplesData::table_headers)
+                                    .map(|headers| headers[2].1),
+                            )
+                            .class("icon");
                         Label::new(cx, Localized::new("duration"));
                         Label::new(cx, "").class("shortcut");
                     })
                 },
-            );
+            )
+            .on_press(|cx| cx.emit(SampleEvent::ToggleColumn(2)));
             MenuButton::new(
                 cx,
                 |_| {},
                 |cx| {
                     HStack::new(cx, |cx| {
-                        Svg::new(cx, ICON_CHECK).class("icon");
+                        Svg::new(cx, ICON_CHECK)
+                            .visibility(
+                                AppData::samples_data
+                                    .then(SamplesData::table_headers)
+                                    .map(|headers| headers[3].1),
+                            )
+                            .class("icon");
                         Label::new(cx, Localized::new("sample-rate"));
                         Label::new(cx, "").class("shortcut");
                     })
                 },
-            );
+            )
+            .on_press(|cx| cx.emit(SampleEvent::ToggleColumn(3)));
             MenuButton::new(
                 cx,
                 |_| {},
                 |cx| {
                     HStack::new(cx, |cx| {
-                        Svg::new(cx, ICON_CHECK).class("icon");
+                        Svg::new(cx, ICON_CHECK)
+                            .visibility(
+                                AppData::samples_data
+                                    .then(SamplesData::table_headers)
+                                    .map(|headers| headers[4].1),
+                            )
+                            .class("icon");
                         Label::new(cx, Localized::new("bit-depth"));
                         Label::new(cx, "").class("shortcut");
                     })
                 },
-            );
+            )
+            .on_press(|cx| cx.emit(SampleEvent::ToggleColumn(4)));
             MenuButton::new(
                 cx,
                 |_| {},
                 |cx| {
                     HStack::new(cx, |cx| {
-                        Svg::new(cx, ICON_CHECK).class("icon");
+                        Svg::new(cx, ICON_CHECK)
+                            .visibility(
+                                AppData::samples_data
+                                    .then(SamplesData::table_headers)
+                                    .map(|headers| headers[5].1),
+                            )
+                            .class("icon");
                         Label::new(cx, Localized::new("num-channels"));
                         Label::new(cx, "").class("shortcut");
                     })
                 },
-            );
+            )
+            .on_press(|cx| cx.emit(SampleEvent::ToggleColumn(5)));
             MenuButton::new(
                 cx,
                 |_| {},
                 |cx| {
                     HStack::new(cx, |cx| {
-                        Svg::new(cx, ICON_CHECK).class("icon");
+                        Svg::new(cx, ICON_CHECK)
+                            .visibility(
+                                AppData::samples_data
+                                    .then(SamplesData::table_headers)
+                                    .map(|headers| headers[6].1),
+                            )
+                            .class("icon");
                         Label::new(cx, Localized::new("bpm"));
                         Label::new(cx, "").class("shortcut");
                     })
                 },
-            );
+            )
+            .on_press(|cx| cx.emit(SampleEvent::ToggleColumn(6)));
             MenuButton::new(
                 cx,
                 |_| {},
                 |cx| {
                     HStack::new(cx, |cx| {
-                        Svg::new(cx, ICON_CHECK).class("icon");
+                        Svg::new(cx, ICON_CHECK)
+                            .visibility(
+                                AppData::samples_data
+                                    .then(SamplesData::table_headers)
+                                    .map(|headers| headers[7].1),
+                            )
+                            .class("icon");
                         Label::new(cx, Localized::new("key"));
                         Label::new(cx, "").class("shortcut");
                     })
                 },
-            );
+            )
+            .on_press(|cx| cx.emit(SampleEvent::ToggleColumn(7)));
             MenuButton::new(
                 cx,
                 |_| {},
@@ -420,7 +488,8 @@ pub fn columns_menu(cx: &mut Context) {
                         Label::new(cx, "").class("shortcut");
                     })
                 },
-            );
+            )
+            .on_press(|cx| cx.emit(SampleEvent::ToggleColumn(8)));
         },
     );
 }
@@ -470,17 +539,6 @@ pub fn wave_panel_menu(cx: &mut Context) {
         cx,
         |cx| Svg::new(cx, ICON_MENU_2),
         |cx| {
-            MenuButton::new(
-                cx,
-                |_| {},
-                |cx| {
-                    HStack::new(cx, |cx| {
-                        Label::new(cx, Localized::new("add-tag"));
-                        Label::new(cx, "Ctrl + N").class("shortcut");
-                    })
-                },
-            );
-            Divider::new(cx);
             Submenu::new(
                 cx,
                 |cx| {
@@ -514,7 +572,6 @@ pub fn wave_panel_menu(cx: &mut Context) {
                     );
                 },
             );
-            Divider::new(cx);
         },
     )
     .class("panel-menu");
@@ -525,7 +582,6 @@ pub fn tags_panel_menu(cx: &mut Context) {
         cx,
         |cx| Svg::new(cx, ICON_MENU_2),
         |cx| {
-            Divider::new(cx);
             MenuButton::new(
                 cx,
                 |_| {},
@@ -536,8 +592,6 @@ pub fn tags_panel_menu(cx: &mut Context) {
                     })
                 },
             );
-
-            Divider::new(cx);
         },
     )
     .class("panel-menu");

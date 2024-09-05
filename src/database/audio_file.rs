@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use vizia::prelude::*;
 
 use super::{CollectionID, Database, DatabaseConnectionHandle, DatabaseError};
@@ -85,7 +87,7 @@ impl DatabaseAudioFileHandler for Database {
                 "SELECT id, name, collection, duration, sample_rate, bit_depth, num_channels, bpm, key, size FROM audio_files WHERE collection = (?1)",
             )?;
 
-            let collections = query.query_map([parent], |row| {
+            let audio_files = query.query_map([parent], |row| {
                 Ok(AudioFile {
                     id: row.get(0)?,
                     name: row.get(1)?,
@@ -100,7 +102,7 @@ impl DatabaseAudioFileHandler for Database {
                 })
             })?;
 
-            return Ok(collections.map(|v| v.unwrap()).collect());
+            return Ok(audio_files.map(|v| v.unwrap()).collect());
         }
         Err(DatabaseError::ConnectionClosed)
     }

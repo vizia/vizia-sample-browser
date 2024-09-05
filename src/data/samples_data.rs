@@ -7,7 +7,7 @@ use vizia::prelude::*;
 
 #[derive(Debug, Lens, Clone, Default)]
 pub struct SamplesData {
-    pub table_headers: Vec<String>,
+    pub table_headers: Vec<(String, bool)>,
     pub table_rows: Vec<AudioFile>,
     pub selected: Option<usize>,
 }
@@ -15,7 +15,7 @@ pub struct SamplesData {
 impl SamplesData {
     pub fn new() -> Self {
         let headers = vec![
-            "Path",
+            "Name",
             "Tags",
             "Duration",
             "Sample Rate",
@@ -27,7 +27,7 @@ impl SamplesData {
             "",
         ]
         .iter_mut()
-        .map(|v| v.to_string())
+        .map(|v| (v.to_string(), true))
         .collect::<Vec<_>>();
 
         Self { table_headers: headers, ..Default::default() }
@@ -40,6 +40,9 @@ pub enum SampleEvent {
     Deselect,
     SelectNext,
     SelectPrev,
+    HideColumn(usize),
+    ShowColumn(usize),
+    ToggleColumn(usize),
 }
 
 impl Model for SamplesData {
@@ -73,6 +76,10 @@ impl Model for SamplesData {
                 if let Some(selected) = self.selected {
                     cx.emit(SampleEvent::Select(selected.saturating_sub(1)));
                 }
+            }
+
+            SampleEvent::ToggleColumn(index) => {
+                self.table_headers[*index].1 ^= true;
             }
 
             _ => {}

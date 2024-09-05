@@ -20,7 +20,7 @@ pub struct ResizableStack {
 impl ResizableStack {
     pub fn new<F>(
         cx: &mut Context,
-        size: impl Lens<Target = f32>,
+        size: impl Lens<Target = Units>,
         direction: ResizeStackDirection,
         on_drag: impl Fn(&mut EventContext, f32) + 'static,
         content: F,
@@ -58,9 +58,9 @@ impl ResizableStack {
             });
 
         if direction == ResizeStackDirection::Right {
-            handle.width(size.map(|w| Units::Pixels(*w)))
+            handle.width(size)
         } else {
-            handle.height(size.map(|w| Units::Pixels(*w)))
+            handle.height(size)
         }
     }
 }

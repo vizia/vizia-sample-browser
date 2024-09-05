@@ -16,6 +16,10 @@ pub struct Config {
     pub table_height: f32,
     pub waveview_width: f32,
 
+    pub browser_visible: bool,
+    pub tags_visible: bool,
+    pub waveview_visible: bool,
+
     pub libraries: HashSet<PathBuf>,
 
     pub recents: Vec<PathBuf>,
@@ -29,6 +33,11 @@ impl Config {
             browser_height: 500.0,
             window_position: (0, 0),
             window_size: (1400, 800),
+
+            browser_visible: true,
+            tags_visible: true,
+            waveview_visible: true,
+
             ..Default::default()
         }
     }
@@ -56,6 +65,10 @@ pub enum ConfigEvent {
     SetTableHeight(f32),
     SetBrowserHeight(f32),
     SetWaveviewWidth(f32),
+
+    ToggleBrowserVisibility,
+    ToggleTagsVisibility,
+    ToggleWaveviewVisibility,
 }
 
 impl Model for Config {
@@ -68,6 +81,9 @@ impl Model for Config {
             ConfigEvent::SetTableHeight(height) => self.table_height = height,
             ConfigEvent::SetBrowserHeight(height) => self.browser_height = height,
             ConfigEvent::SetWaveviewWidth(width) => self.waveview_width = width,
+            ConfigEvent::ToggleBrowserVisibility => self.browser_visible ^= true,
+            ConfigEvent::ToggleTagsVisibility => self.tags_visible ^= true,
+            ConfigEvent::ToggleWaveviewVisibility => self.waveview_visible ^= true,
         })
     }
 }

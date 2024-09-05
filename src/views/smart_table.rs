@@ -38,7 +38,7 @@ impl SmartTable {
     where
         L1: Lens,
         L2: Lens,
-        <L1 as Lens>::Target: std::ops::Deref<Target = [T1]>,
+        <L1 as Lens>::Target: std::ops::Deref<Target = [(T1, bool)]>,
         <L2 as Lens>::Target: std::ops::Deref<Target = [R]>,
         R: Data + std::fmt::Debug,
         T1: Data + ToStringLocalized,
@@ -72,10 +72,13 @@ impl SmartTable {
                 // Headers
                 List::new(cx, headers, |cx, col_index, item| {
                     HStack::new(cx, move |cx| {
-                        Label::new(cx, item).class("column-heading").hoverable(false);
+                        Label::new(cx, item.map(|h| h.0.clone()))
+                            .class("column-heading")
+                            .hoverable(false);
                     })
                     .hoverable(false)
                     .width(Self::widths.idx(col_index))
+                    .display(item.map(|h| h.1))
                     .height(Auto);
                 })
                 .hoverable(true)
@@ -335,18 +338,19 @@ impl SmartTableRow {
     ) -> Handle<Self>
     where
         L1: Lens<Target = R>,
-        L2: Lens<Target: std::ops::Deref<Target = [T]>>,
+        L2: Lens<Target: std::ops::Deref<Target = [(T, bool)]>>,
         R: Data,
         T: Data + ToStringLocalized,
         F: 'static + Copy + Fn(&mut Context, L1, usize),
     {
         Self { row_index }
             .build(cx, move |cx| {
-                List::new(cx, headers, move |cx, col_index, _| {
+                List::new(cx, headers, move |cx, col_index, header| {
                     HStack::new(cx, move |cx| {
                         (content)(cx, row, col_index);
                     })
                     .class("column")
+                    .display(header.map(|h| h.1))
                     .overflow(Overflow::Hidden)
                     .width(SmartTable::widths.idx(col_index))
                     .height(Stretch(1.0));

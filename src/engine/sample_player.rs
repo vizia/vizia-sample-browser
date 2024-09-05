@@ -261,7 +261,7 @@ impl Process {
                 }
 
                 if let PlayerState::Stopped = self.playback_state {
-                    self.input_count -= 1024;
+                    self.input_count = 0;
                     // Paused, do nothing.
                     silence(buffer);
                     return Ok(());
@@ -283,7 +283,8 @@ impl Process {
 
                 // If user seeks ahead of the loop end, continue playing until the end
                 // of the file.
-                let loop_end = if playhead < self.loop_end { self.loop_end } else { num_frames };
+                // let loop_end = if playhead < self.loop_end { self.loop_end } else { num_frames };
+                let loop_end = num_frames;
 
                 let read_data = read_disk_stream.read(read_frames)?;
 
@@ -318,7 +319,7 @@ impl Process {
                     read_data.num_frames()
                 };
 
-                playhead += output_size;
+                playhead += read_data.num_frames();
                 if playhead >= loop_end {
                     // Copy up to the end of the loop.
                     let to_end_of_loop = output_size - (playhead - loop_end);

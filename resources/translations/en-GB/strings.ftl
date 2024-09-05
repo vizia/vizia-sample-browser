@@ -30,7 +30,7 @@ show-waveview = Show Waveview Panel
 columns = Columns
 restore-default-columns = Restore Default Columns
 show-all-columns = Show All Columns
-path = Path
+name = Name
 tags = Tags
 duration = Duration
 sample-rate = Sample Rate
@@ -42,10 +42,13 @@ size = Size
 toggle-fullscreen = Toggle Fullscreen
 reset-view = Reset View
 
-
 help = Help
 show-logs = Show Logs...
 about = About...
+
+add-tag = Add Tag...
+
+display-mode = Display Mode
 
 settings = Settings
 general = General

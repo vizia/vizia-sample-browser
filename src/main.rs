@@ -137,30 +137,44 @@ fn main() -> Result<(), AppError> {
         HStack::new(cx, |cx| {
             ResizableStack::new(
                 cx,
-                AppData::config.then(Config::browser_width),
+                AppData::config.then(Config::browser_width).map(|w| Pixels(*w)),
                 ResizeStackDirection::Right,
                 |cx, width| cx.emit(ConfigEvent::SetBrowserWidth(width)),
                 |cx| {
                     ResizableStack::new(
                         cx,
-                        AppData::config.then(Config::browser_height),
+                        AppData::config.map(|config| {
+                            if config.tags_visible {
+                                Pixels(config.browser_height)
+                            } else {
+                                Stretch(1.0)
+                            }
+                        }),
                         ResizeStackDirection::Bottom,
                         |cx, height| cx.emit(ConfigEvent::SetBrowserHeight(height)),
                         |cx| {
                             BrowserPanel::new(cx);
                         },
                     )
+                    .display(AppData::config.then(Config::browser_visible))
                     .class("browser");
-                    TagsPanel::new(cx);
+                    TagsPanel::new(cx).display(AppData::config.then(Config::tags_visible));
                 },
             )
+            .display(AppData::config.map(|config| config.browser_visible || config.tags_visible))
             .class("side-bar");
 
             VStack::new(cx, |cx| {
                 // Samples Panel
                 ResizableStack::new(
                     cx,
-                    AppData::config.then(Config::table_height),
+                    AppData::config.map(|config| {
+                        if config.waveview_visible {
+                            Pixels(config.table_height)
+                        } else {
+                            Stretch(1.0)
+                        }
+                    }),
                     ResizeStackDirection::Bottom,
                     |cx, height| cx.emit(ConfigEvent::SetTableHeight(height)),
                     |cx| {
@@ -169,7 +183,7 @@ fn main() -> Result<(), AppError> {
                 )
                 .class("table");
                 // Waveform Panel
-                WavePanel::new(cx);
+                WavePanel::new(cx).display(AppData::config.then(Config::waveview_visible));
             })
             .row_between(Pixels(1.0));
         })
