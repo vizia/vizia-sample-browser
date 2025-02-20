@@ -32,45 +32,59 @@ pub enum ChannelMode {
     Both,
 }
 
+/// The units mode for the waveform.
 #[derive(Debug, Clone, PartialEq)]
 pub enum UnitsMode {
+    // The waveform is displayed in linear samples.
     Linear,
+    // The waveform is displayed in decibels.
     Decibel,
 }
 
 /// The state of the playhead.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PlayState {
+    // The audio is currently playing.
     Playing,
+    // The audio is currently paused.
     Paused,
+    // The audio is currently stopped.
     Stopped,
 }
 
 /// Whether the zoom should be focused at the playback cursor or the mouse.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ZoomMode {
+    // The zoom is focused at the playback cursor.
     Cursor,
+    // The zoom is focused at the mouse.
     Mouse,
 }
 
 #[derive(Lens)]
 pub struct AppData {
+    // Timer
     timer: Timer,
     // Dialogs
+    // Whether the about dialog should be shown.
     pub show_about_dialog: bool,
+    // Whether the settings dialog should be shown.
     pub show_settings_dialog: bool,
+    // Whether the add collection dialog should be shown.
     pub show_add_collection_dialog: bool,
 
     // GUI State
+    // The data model for the browser panel.
     pub browser_data: BrowserData,
+    // The data model for the samples view.
     pub samples_data: SamplesData,
+    // The data model for the tags panel.
     pub tags_data: TagsData,
-
-    pub config: Config,
-
-    pub search_text: String,
-    pub selected_sample: Option<usize>,
+    // The data model for the settings dialog.
     pub settings_data: SettingsData,
+
+    // The configuration data of the application
+    pub config: Config,
 
     // Database
     #[lens(ignore)]
@@ -79,7 +93,6 @@ pub struct AppData {
     // Audio Engine
     #[lens(ignore)]
     pub collector: Collector,
-
     pub controller: SamplePlayerController,
 
     // Audio GUI State
@@ -105,9 +118,6 @@ impl AppData {
             tags_data: TagsData::default(),
 
             config: Config::new(),
-
-            search_text: String::new(),
-            selected_sample: None,
 
             // Database
             database: None,
@@ -137,21 +147,33 @@ unsafe impl Send for Testy {}
 unsafe impl Sync for Testy {}
 
 pub enum AppEvent {
+    // Show the about dialog.
     ShowAboutDialog,
+    // Hide the about dialog.
     HideAboutDialog,
+    // Show the settings dialog.
     ShowSettingsDialog,
+    // Hide the settings dialog.
     HideSettingsDialog,
+    // Show the add collection dialog.
     ShowAddCollectionDialog,
+    // Hide the add collection dialog.
     HideAddCollectionDialog,
 
+    // Show the open collection dialog.
     ShowOpenCollectionDialog,
 
+    // View a collection.
     ViewCollection(CollectionID),
+    // Update the samples table with the given audio files.
     UpdateTable(Vec<AudioFile>),
 
+    // Open a collection from the given path.
     OpenCollection(PathBuf),
+    // The collection has been opened.
     CollectionOpened(Database, Directory, Vec<Tag>),
 
+    // Select a sample from the given collection.
     SelectSample(CollectionID, String),
 
     // Audio Control Events
@@ -173,6 +195,12 @@ fn view_collection(id: usize, db: &MutexGuard<Database>, rows: &mut Vec<AudioFil
         rows.extend(audio_files.into_iter());
     }
 
+    for row in rows.iter() {
+        if let Ok(tags) = db.get_tags_for_audio_file(row.id) {
+            // Add tags to the audio file
+        }
+    }
+
     if let Ok(child_collections) = db.get_child_collections(id) {
         for child in child_collections {
             view_collection(child.id(), db, rows);
@@ -182,6 +210,7 @@ fn view_collection(id: usize, db: &MutexGuard<Database>, rows: &mut Vec<AudioFil
 
 impl Model for AppData {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
+        // Handle events for all the data models
         self.browser_data.event(cx, event);
         self.samples_data.event(cx, event);
         self.tags_data.event(cx, event);
@@ -400,8 +429,19 @@ impl Model for AppData {
 
         event.map(|window_event, _| match window_event {
             WindowEvent::WindowClose => {
-                self.config.window_position = cx.window_position().into();
-                self.config.window_size = cx.window_size().into();
+                if let Some(window) = cx.window() {
+                    let size: (u32, u32) = window.inner_size().into();
+                    self.config.window_size = (
+                        (size.0 as f32 / cx.scale_factor()) as u32,
+                        (size.1 as f32 / cx.scale_factor()) as u32,
+                    );
+                    let position: (i32, i32) = window.outer_position().unwrap_or_default().into();
+                    self.config.window_position = (
+                        (position.0 as f32 / cx.scale_factor()) as i32,
+                        (position.1 as f32 / cx.scale_factor()) as i32,
+                    );
+                }
+
                 self.config.save();
             }
 
@@ -410,6 +450,7 @@ impl Model for AppData {
     }
 }
 
+/// Recursively convert a list of collections into a tree of directories.
 fn collections_to_directories(
     collections: &Vec<Collection>,
     audio_files: &Vec<AudioFile>,

@@ -5,19 +5,29 @@ use vizia::prelude::*;
 
 use crate::Tag;
 
+// The data model for the tags panel
 #[derive(Debug, Lens, Clone, Default)]
 pub struct TagsData {
+    // The search text in the search box
     pub search_text: String,
+    // Whether the search results should be filtered
     pub filter_search: bool,
+    // Whether the search should be case sensitive
     pub search_case_sensitive: bool,
+    // The tags to display
     pub tags: Vec<Tag>,
 }
 
+// The event types for the tags panel
 #[derive(Debug, Clone, PartialEq)]
 pub enum TagsEvent {
+    // Search for a tag
     Search(String),
+    // Toggle the visibility of the search box
     ToggleShowSearch,
+    // Toggle the filtering of the search results
     ToggleSearchFilter,
+    // Toggle the case sensitivity of the search
     ToggleSearchCaseSensitivity,
 }
 

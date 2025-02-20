@@ -26,10 +26,10 @@ impl TagsPanel {
 
             // Header
             HStack::new(cx, |cx| {
-                // Panel Icon
-                Svg::new(cx, ICON_TAG).class("panel-icon");
-
+                // Panel Title
                 Label::new(cx, "TAGS");
+
+                Spacer::new(cx);
 
                 // Search Toggle Button
                 ToggleButton::new(cx, TagsPanel::search_shown, |cx| Svg::new(cx, ICON_SEARCH))
@@ -87,15 +87,15 @@ impl TagsPanel {
                         })
                     });
                 })
-                .position_type(PositionType::SelfDirected)
+                .position_type(PositionType::Absolute)
                 .space(Stretch(1.0))
                 .right(Pixels(4.0))
-                .col_between(Pixels(2.0))
+                .horizontal_gap(Pixels(2.0))
                 .size(Auto);
             })
             .class("searchbar")
             .toggle_class("shown", TagsPanel::search_shown)
-            .col_between(Pixels(8.0))
+            .horizontal_gap(Pixels(8.0))
             .height(Auto);
 
             // Tags List
@@ -116,7 +116,8 @@ impl TagsPanel {
                     })
                     .class("tag")
                 },
-            );
+            )
+            .height(Stretch(1.0));
 
             // Footer
             HStack::new(cx, |cx| {

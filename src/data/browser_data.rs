@@ -10,13 +10,20 @@ use std::{
 };
 use vizia::prelude::*;
 
+/// The data model for the browser panel
 #[derive(Debug, Lens, Clone, Default)]
 pub struct BrowserData {
+    // The libraries to display in the browser
     pub libraries: Vec<Directory>,
+    // The selected items in the browser
     pub selected: HashSet<PathBuf>,
+    // The focused item in the browser
     pub focused: Option<PathBuf>,
+    // The search text in the search box
     pub search_text: String,
+    // Whether to filter the search results
     pub filter_search: bool,
+    // Whether the search should be case sensitive
     pub search_case_sensitive: bool,
 }
 
@@ -28,31 +35,53 @@ impl BrowserData {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum BrowserEvent {
+    // Search for a directory
     Search(String),
+    /// Select a directory item by path
     Select(PathBuf, CollectionID),
+    // Deselect all selected items
     Deselect,
+    // Add a directory item to the selection
     AddSelection(PathBuf),
+    // Set the focused directory item by path
     SetFocused(Option<PathBuf>),
+    // Move selection to the next directory item
     SelectNext,
+    // Move selection to the previous directory item
     SelectPrev,
+    // Toggle the visibility of a directory item
     ToggleDirectory(PathBuf),
+    // Expand the focused directory item
     ExpandDirectory,
+    // Collapse the focused directory item
     CollapseDirectory,
+    // Toggle the visibility of the search box
     ToggleShowSearch,
+    // Toggle the filtering of the search results
     ToggleSearchFilter,
+    // Toggle the case sensitivity of the search
     ToggleSearchCaseSensitivity,
 }
 
 #[derive(Debug, Clone, Data, Lens, Default)]
 pub struct Directory {
+    // The ID of the collection
     pub id: CollectionID,
+    // The ID of the parent collection
     pub parent_id: Option<CollectionID>,
+    // The name of the collection
     pub name: String,
+    // The path of the collection
     pub path: PathBuf,
+    // The children of the collection
     pub children: Vec<Directory>,
+    // Whether the collection is open
     pub is_open: bool,
+    // The number of files in the collection
     pub num_files: usize,
+    // The indices of the matched characters in the name
     pub match_indices: Vec<usize>,
+    // Whether the collection is shown
     pub shown: bool,
 }
 
@@ -62,17 +91,19 @@ impl Model for BrowserData {
             BrowserEvent::Search(search_text) => {
                 self.focused = None;
                 self.search_text = search_text.clone();
-                search(
-                    &mut self.libraries[0],
-                    &self.search_text,
-                    self.filter_search,
-                    !self.search_case_sensitive,
-                );
+                if !self.libraries.is_empty() {
+                    search(
+                        &mut self.libraries[0],
+                        &self.search_text,
+                        self.filter_search,
+                        !self.search_case_sensitive,
+                    );
+                }
             }
 
             BrowserEvent::ToggleSearchFilter => {
                 self.filter_search ^= true;
-                if !self.search_text.is_empty() {
+                if !self.search_text.is_empty() && !self.libraries.is_empty() {
                     search(
                         &mut self.libraries[0],
                         &self.search_text,
@@ -84,7 +115,7 @@ impl Model for BrowserData {
 
             BrowserEvent::ToggleSearchCaseSensitivity => {
                 self.search_case_sensitive ^= true;
-                if !self.search_text.is_empty() {
+                if !self.search_text.is_empty() && !self.libraries.is_empty() {
                     search(
                         &mut self.libraries[0],
                         &self.search_text,
@@ -134,17 +165,22 @@ impl Model for BrowserData {
                 self.focused = path.clone();
             }
 
-            // Move focus the next directory item
+            // Move selection to the next directory item
             BrowserEvent::SelectNext => {
                 if let Some(focused) = &self.focused {
                     let next = recursive_next(&self.libraries[0], None, focused);
                     if let RetItem::Found(next_dir) = next {
                         cx.emit(BrowserEvent::Select(next_dir.path.clone(), next_dir.id));
                     }
+                } else {
+                    cx.emit(BrowserEvent::Select(
+                        self.libraries[0].path.clone(),
+                        self.libraries[0].id,
+                    ));
                 }
             }
 
-            // Move selection the previous directory item
+            // Move selection to the previous directory item
             BrowserEvent::SelectPrev => {
                 if let Some(focused) = &self.focused {
                     let prev = recursive_prev(&self.libraries[0], None, focused);

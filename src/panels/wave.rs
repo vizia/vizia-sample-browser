@@ -22,17 +22,17 @@ pub struct WavePanel {}
 impl WavePanel {
     pub fn new(cx: &mut Context) -> Handle<Self> {
         Self {}.build(cx, |cx| {
-            Keymap::from(vec![
-                (
-                    KeyChord::new(Modifiers::empty(), Code::ArrowDown),
-                    KeymapEntry::new((), |cx| cx.emit(SampleEvent::SelectNext)),
-                ),
-                (
-                    KeyChord::new(Modifiers::empty(), Code::ArrowUp),
-                    KeymapEntry::new((), |cx| cx.emit(SampleEvent::SelectPrev)),
-                ),
-            ])
-            .build(cx);
+            // Keymap::from(vec![
+            //     (
+            //         KeyChord::new(Modifiers::empty(), Code::ArrowDown),
+            //         KeymapEntry::new((), |cx| cx.emit(SampleEvent::SelectNext)),
+            //     ),
+            //     (
+            //         KeyChord::new(Modifiers::empty(), Code::ArrowUp),
+            //         KeymapEntry::new((), |cx| cx.emit(SampleEvent::SelectPrev)),
+            //     ),
+            // ])
+            // .build(cx);
 
             // Header
             HStack::new(cx, |cx| {
