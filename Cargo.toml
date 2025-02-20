@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-vizia = {git = "https://github.com/vizia/vizia"}
+vizia = {git = "https://github.com/vizia/vizia", branch = "virtual_table"}
 # vizia = {path = "../vizia"}
 # vizia = "0.2"
 rusqlite = { version = "0.32", features = ["bundled", "chrono"] }

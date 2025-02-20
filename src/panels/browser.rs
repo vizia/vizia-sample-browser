@@ -23,36 +23,18 @@ pub struct BrowserPanel {
 impl BrowserPanel {
     pub fn new(cx: &mut Context) -> Handle<Self> {
         Self { search_shown: true }.build(cx, |cx| {
-            Keymap::from(vec![
-                (
-                    KeyChord::new(Modifiers::CTRL, Code::KeyF),
-                    KeymapEntry::new((), |cx| cx.emit(BrowserEvent::ToggleShowSearch)),
-                ),
-                (
-                    KeyChord::new(Modifiers::empty(), Code::ArrowLeft),
-                    KeymapEntry::new((), |cx| cx.emit(BrowserEvent::CollapseDirectory)),
-                ),
-                (
-                    KeyChord::new(Modifiers::empty(), Code::ArrowRight),
-                    KeymapEntry::new((), |cx| cx.emit(BrowserEvent::ExpandDirectory)),
-                ),
-                (
-                    KeyChord::new(Modifiers::empty(), Code::ArrowDown),
-                    KeymapEntry::new((), |cx| cx.emit(BrowserEvent::SelectNext)),
-                ),
-                (
-                    KeyChord::new(Modifiers::empty(), Code::ArrowUp),
-                    KeymapEntry::new((), |cx| cx.emit(BrowserEvent::SelectPrev)),
-                ),
-            ])
+            Keymap::from(vec![(
+                KeyChord::new(Modifiers::CTRL, Code::KeyF),
+                KeymapEntry::new((), |cx| cx.emit(BrowserEvent::ToggleShowSearch)),
+            )])
             .build(cx);
 
             // Header
             HStack::new(cx, |cx| {
-                // Panel Icon
-                Svg::new(cx, ICON_FOLDER_OPEN).class("panel-icon");
-
+                // Panel Title
                 Label::new(cx, "COLLECTIONS");
+
+                Spacer::new(cx);
 
                 // Search Toggle Button
                 ToggleButton::new(cx, BrowserPanel::search_shown, |cx| Svg::new(cx, ICON_SEARCH))
@@ -113,94 +95,18 @@ impl BrowserPanel {
                         })
                     });
                 })
-                .position_type(PositionType::SelfDirected)
+                .position_type(PositionType::Absolute)
                 .space(Stretch(1.0))
                 .right(Pixels(4.0))
-                .col_between(Pixels(2.0))
+                .horizontal_gap(Pixels(2.0))
                 .size(Auto);
             })
             .class("searchbar")
             .toggle_class("shown", BrowserPanel::search_shown)
-            .col_between(Pixels(8.0))
+            .horizontal_gap(Pixels(8.0))
             .height(Auto);
 
-            Binding::new(
-                cx,
-                AppData::browser_data
-                    .then(BrowserData::libraries)
-                    .map(|libraries| libraries.is_empty()),
-                |cx, empty| {
-                    if !empty.get(cx) {
-                        // Folder TreeView
-                        ScrollView::new(cx, 0.0, 0.0, false, true, |cx| {
-                            treeview(
-                                cx,
-                                AppData::browser_data.then(BrowserData::libraries.idx(0)),
-                                0,
-                                directory,
-                                |cx, item, level| {
-                                    treeview(cx, item, level, directory, |cx, item, level| {
-                                        treeview(cx, item, level, directory, |cx, item, level| {
-                                            treeview(
-                                                cx,
-                                                item,
-                                                level,
-                                                directory,
-                                                |cx, item, level| {
-                                                    treeview(
-                                                        cx,
-                                                        item,
-                                                        level,
-                                                        directory,
-                                                        |cx, item, level| {
-                                                            treeview(
-                                                                cx,
-                                                                item,
-                                                                level,
-                                                                directory,
-                                                                |cx, item, level| {
-                                                                    treeview(
-                                                                        cx,
-                                                                        item,
-                                                                        level,
-                                                                        directory,
-                                                                        |cx, item, level| {
-                                                                            treeview(
-                                                        cx,
-                                                        item,
-                                                        level,
-                                                        directory,
-                                                        |cx, item, level| {
-                                                            treeview(
-                                                                cx,
-                                                                item,
-                                                                level,
-                                                                directory,
-                                                                |cx, item, level| {
-                                                                    treeview(
-                                                                        cx, item, level, directory,
-                                                                        directory,
-                                                                    );
-                                                                },
-                                                            );
-                                                        },
-                                                    );
-                                                                        },
-                                                                    );
-                                                                },
-                                                            );
-                                                        },
-                                                    );
-                                                },
-                                            );
-                                        });
-                                    });
-                                },
-                            );
-                        });
-                    }
-                },
-            );
+            TreeView::new(cx);
 
             // // Footer
             // HStack::new(cx, |cx| {
@@ -232,6 +138,141 @@ impl View for BrowserPanel {
     }
 }
 
+pub struct TreeView {}
+
+impl TreeView {
+    pub fn new(cx: &mut Context) -> Handle<Self> {
+        Self {}
+            .build(cx, |cx| {
+                Keymap::from(vec![
+                    (
+                        KeyChord::new(Modifiers::CTRL, Code::KeyF),
+                        KeymapEntry::new((), |cx| cx.emit(BrowserEvent::ToggleShowSearch)),
+                    ),
+                    (
+                        KeyChord::new(Modifiers::empty(), Code::ArrowLeft),
+                        KeymapEntry::new((), |cx| cx.emit(BrowserEvent::CollapseDirectory)),
+                    ),
+                    (
+                        KeyChord::new(Modifiers::empty(), Code::ArrowRight),
+                        KeymapEntry::new((), |cx| cx.emit(BrowserEvent::ExpandDirectory)),
+                    ),
+                    (
+                        KeyChord::new(Modifiers::empty(), Code::ArrowDown),
+                        KeymapEntry::new((), |cx| cx.emit(BrowserEvent::SelectNext)),
+                    ),
+                    (
+                        KeyChord::new(Modifiers::empty(), Code::ArrowUp),
+                        KeymapEntry::new((), |cx| cx.emit(BrowserEvent::SelectPrev)),
+                    ),
+                ])
+                .build(cx);
+
+                Binding::new(
+                    cx,
+                    AppData::browser_data
+                        .then(BrowserData::libraries)
+                        .map(|libraries| libraries.is_empty()),
+                    |cx, empty| {
+                        if !empty.get(cx) {
+                            // Folder TreeView
+                            ScrollView::new(cx, |cx| {
+                                treeview(
+                                    cx,
+                                    AppData::browser_data.then(BrowserData::libraries.idx(0)),
+                                    0,
+                                    directory,
+                                    |cx, item, level| {
+                                        treeview(cx, item, level, directory, |cx, item, level| {
+                                            treeview(
+                                                cx,
+                                                item,
+                                                level,
+                                                directory,
+                                                |cx, item, level| {
+                                                    treeview(
+                                                        cx,
+                                                        item,
+                                                        level,
+                                                        directory,
+                                                        |cx, item, level| {
+                                                            treeview(
+                                                                cx,
+                                                                item,
+                                                                level,
+                                                                directory,
+                                                                |cx, item, level| {
+                                                                    treeview(
+                                                                        cx,
+                                                                        item,
+                                                                        level,
+                                                                        directory,
+                                                                        |cx, item, level| {
+                                                                            treeview(
+                                                                        cx,
+                                                                        item,
+                                                                        level,
+                                                                        directory,
+                                                                        |cx, item, level| {
+                                                                            treeview(
+                                                        cx,
+                                                        item,
+                                                        level,
+                                                        directory,
+                                                        |cx, item, level| {
+                                                            treeview(
+                                                                cx,
+                                                                item,
+                                                                level,
+                                                                directory,
+                                                                |cx, item, level| {
+                                                                    treeview(
+                                                                        cx, item, level, directory,
+                                                                        directory,
+                                                                    );
+                                                                },
+                                                            );
+                                                        },
+                                                    );
+                                                                        },
+                                                                    );
+                                                                        },
+                                                                    );
+                                                                },
+                                                            );
+                                                        },
+                                                    );
+                                                },
+                                            );
+                                        });
+                                    },
+                                );
+                            });
+                        }
+                    },
+                );
+            })
+            .navigable(true)
+    }
+}
+
+impl View for TreeView {
+    fn element(&self) -> Option<&'static str> {
+        Some("treeview")
+    }
+
+    fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
+        event.map(|browser_event, _| match browser_event {
+            BrowserEvent::Select(_, _) => {
+                println!("Select");
+                cx.focus();
+            }
+            _ => {}
+        });
+    }
+}
+
+// A treeview directory item
 fn directory<L>(cx: &mut Context, root: L, level: u32)
 where
     L: Lens<Target = Directory>,
@@ -250,7 +291,7 @@ where
             .map(move |focused| focused == &Some(file_path2.clone()));
 
         DirectoryItem::new(cx, root, selected_lens, focused_lens, file_path3)
-            .child_left(Pixels(10.0 * level as f32 + 4.0));
+            .padding_left(Pixels(10.0 * level as f32 + 4.0));
     });
 }
 
@@ -274,7 +315,8 @@ impl DirectoryItem {
                 Button::new(cx, |cx| Svg::new(cx, ICON_CHEVRON_DOWN))
                     .class("dir-arrow")
                     .visibility(root.then(Directory::children).map(|c| !c.is_empty()))
-                    .navigable(root.then(Directory::children).map(|c| !c.is_empty()))
+                    .navigable(false)
+                    //.navigable(root.then(Directory::children).map(|c| !c.is_empty()))
                     .hoverable(root.then(Directory::children).map(|c| !c.is_empty()))
                     .rotate(root.then(Directory::is_open).map(|is_open| {
                         if *is_open {
@@ -318,8 +360,7 @@ impl DirectoryItem {
                     .hoverable(false)
                     .class("dir-num");
             })
-            .navigable(true)
-            .focused(focused)
+            //.focused(focused)
             .layout_type(LayoutType::Row)
             .toggle_class("selected", selected)
             .toggle_class(
@@ -374,6 +415,7 @@ impl View for DirectoryItem {
     }
 }
 
+// A treeview
 fn treeview<L>(
     cx: &mut Context,
     lens: L,
@@ -397,8 +439,18 @@ fn treeview<L>(
                             List::new(cx, lens.then(Directory::children), move |cx, _, item| {
                                 (content1)(cx, item, level + 1);
                             })
+                            .navigable(false)
+                            .selectable(Selectable::None)
                             .width(Stretch(1.0))
-                            .height(Auto);
+                            .height(Auto)
+                            .class("treeview-list")
+                            .on_build(|cx| {
+                                cx.play_animation(
+                                    "animate-expand",
+                                    Duration::from_millis(100),
+                                    Duration::from_millis(0),
+                                )
+                            });
 
                             // Element::new(cx)
                             //     .left(Pixels(10.0 * (level + 1) as f32 + 4.0))

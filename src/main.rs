@@ -3,6 +3,7 @@
 use app_data::AppData;
 use basedrop::Collector;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use image::Pixels;
 use itertools::Itertools;
 use menus::menu_bar;
 use rusqlite::Connection;
@@ -14,7 +15,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 use thiserror::Error;
-use views::smart_table::SmartTable;
+
 use vizia::{
     icons::{ICON_LIST_SEARCH, ICON_SEARCH},
     prelude::{GenerationalId, *},
@@ -135,34 +136,49 @@ fn main() -> Result<(), AppError> {
         .class("top-bar");
 
         HStack::new(cx, |cx| {
+            Sidebar::new(cx);
             ResizableStack::new(
                 cx,
                 AppData::config.then(Config::browser_width).map(|w| Pixels(*w)),
                 ResizeStackDirection::Right,
                 |cx, width| cx.emit(ConfigEvent::SetBrowserWidth(width)),
                 |cx| {
-                    ResizableStack::new(
+                    Binding::new(
                         cx,
-                        AppData::config.map(|config| {
-                            if config.tags_visible {
-                                Pixels(config.browser_height)
-                            } else {
-                                Stretch(1.0)
+                        AppData::config.then(Config::sidebar_view),
+                        |cx, sidebar_view| match sidebar_view.get(cx) {
+                            SidebarView::Browser => {
+                                BrowserPanel::new(cx);
                             }
-                        }),
-                        ResizeStackDirection::Bottom,
-                        |cx, height| cx.emit(ConfigEvent::SetBrowserHeight(height)),
-                        |cx| {
-                            BrowserPanel::new(cx);
+                            SidebarView::Tags => {
+                                TagsPanel::new(cx);
+                            }
                         },
-                    )
-                    .display(AppData::config.then(Config::browser_visible))
-                    .class("browser");
-                    TagsPanel::new(cx).display(AppData::config.then(Config::tags_visible));
+                    );
+                    // ResizableStack::new(
+                    //     cx,
+                    //     AppData::config.map(|config| {
+                    //         if config.tags_visible {
+                    //             Pixels(config.browser_height)
+                    //         } else {
+                    //             Stretch(1.0)
+                    //         }
+                    //     }),
+                    //     ResizeStackDirection::Bottom,
+                    //     |cx, height| cx.emit(ConfigEvent::SetBrowserHeight(height)),
+                    //     |cx| {
+                    //         BrowserPanel::new(cx);
+                    //     },
+                    // )
+                    // .display(AppData::config.then(Config::browser_visible))
+                    // .class("browser");
+                    // TagsPanel::new(cx).display(AppData::config.then(Config::tags_visible));
                 },
             )
-            .display(AppData::config.map(|config| config.browser_visible || config.tags_visible))
-            .class("side-bar");
+            //.max_width(Pixels(20.0))
+            //.display(AppData::config.then(Config::show_sidebar))
+            .class("side-bar")
+            .toggle_class("hidden", AppData::config.then(Config::show_sidebar).map(|b| !b));
 
             VStack::new(cx, |cx| {
                 // Samples Panel
@@ -185,10 +201,10 @@ fn main() -> Result<(), AppError> {
                 // Waveform Panel
                 WavePanel::new(cx).display(AppData::config.then(Config::waveview_visible));
             })
-            .row_between(Pixels(1.0));
+            .vertical_gap(Pixels(1.0));
         })
         .class("content")
-        .col_between(Pixels(1.0))
+        .horizontal_gap(Pixels(1.0))
         .size(Stretch(1.0));
 
         HStack::new(cx, |cx| {}).class("bottom-bar");

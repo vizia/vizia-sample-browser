@@ -20,7 +20,7 @@ col-5: #8c8c8c;
     color: #ebebeb;
     font-family: "Segoe UI";
     font-size: 12;
-    row-between: 1px;
+    vertical-gap: 1px;
 }
 
 label.title {
@@ -43,16 +43,49 @@ divider {
 .bottom-bar {
     background-color: #2677c3;
     height: 24px;
-    child-top: 1s;
-    child-bottom: 1s;
+    alignment: center;
 }
 
 .side-bar {
-    row-between: 1px;
+    vertical-gap: 1px;
+}
+
+resizable-stack.side-bar.hidden {
+    max-width: 0px;
+    transition: max-width 200ms;
 }
 
 .content {
-    col-between: 1px;
+    horizontal-gap: 1px;
+}
+
+sidebar {
+    background-color: #181818;
+    width: 50px;
+}
+
+sidebar button {
+    background-color: transparent;
+    background-color: transparent;
+    size: 50px;
+}
+
+sidebar button svg {
+    fill: #8c8c8c;
+    size: 28px;
+}
+
+sidebar button:hover {
+    background-color: transparent;
+    background-color: transparent;
+}
+
+sidebar button:hover svg {
+    fill: #ebebeb;
+}
+
+sidebar button:checked svg {
+    fill: #ebebeb;
 }
 
 menubar {
@@ -69,7 +102,7 @@ submenu {
 }
 
 menubutton label {
-    width: 1s;
+    width: auto;
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -92,8 +125,8 @@ menubutton:disabled {
 }
 
 menubar > submenu {
-    child-left: 12px;
-    child-right: 12px;
+    padding-left: 12px;
+    padding-right: 12px;
 }
 
 menubar > submenu:checked {
@@ -130,21 +163,25 @@ submenu submenu > popup {
 
 submenu > popup {
     border-width: 1px;
-    width: 250px;
+    width: auto;
+    min-width: 250px;
     border-color: #505050;
     background-color: #1e1e1e;
-    row-between: 1px;
+    vertical-gap: 1px;
     corner-radius: 4px;
-    child-space: 0px;
-    child-top: 4px;
-    child-bottom: 4px;
+    padding: 0px;
+    padding-top: 4px;
+    padding-bottom: 4px;
     shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.466);
+}
+
+submenu menu-divider {
+    padding-top: 4px;
+    padding-bottom: 4px;
 }
 
 submenu divider {
     background-color: #888888;
-    top: 4px;
-    bottom: 4px;
 }
 
 submenu svg {
@@ -164,6 +201,8 @@ submenu.panel-menu {
     size: 28px;
     background-color: transparent;
     cursor: hand;
+    alignment: center;
+    padding: 0px;
 }
 
 submenu.panel-menu:hover {
@@ -177,16 +216,15 @@ submenu.panel-menu:checked {
 submenu.panel-menu > svg {
     fill: #ebebeb;
     size: 20px;
-    space: 1s;
 }
 
 scrollview.settings > scroll-content {
-    child-space: 20px;
-    row-between: 15px;
+    padding: 20px;
+    vertical-gap: 15px;
 }
 
 tabview.settings > scrollview > scroll-content {
-    child-space: 8px;
+    padding: 8px;
 }
 
 tabview.settings tabheader label.tab-name {
@@ -200,11 +238,11 @@ tabview.settings tabheader:checked label.tab-name {
 
 .settings .panel {
     background-color: #282828;
-    col-between: 1s;
-    child-top: 1s;
-    child-bottom: 1s;
-    child-left: 20px;
-    child-right: 20px;
+    horizontal-gap: 1s;
+    padding-top: 1s;
+    padding-bottom: 1s;
+    padding-left: 20px;
+    padding-right: 20px;
     width: 1s;
     height: auto;
     corner-radius: 4px;
@@ -240,9 +278,8 @@ svg.panel-icon {
 .header {
     height: 28px;
     width: 1s;
-    child-top: 1s;
-    child-bottom: 1s;
-    col-between: 8px;
+    alignment: left;
+    horizontal-gap: 8px;
 }
 
 .button-group {
@@ -253,7 +290,7 @@ svg.panel-icon {
 
 .button-group button {
     background-color: transparent;
-    child-space: 1s;
+    alignment: center;
     size: 28px;
     border-radius: 4px;
 }
@@ -275,6 +312,7 @@ svg.panel-icon {
 resizable-stack.side-bar {
     min-width: 200px;
     max-width: 500px;
+    transition: max-width 200ms;
 }
 
 resizable-stack.browser {
@@ -290,34 +328,40 @@ resizable-stack.table {
 browser-panel {
     background-color: #181818;
     size: 1s;
-    row-between: 8px;
-    child-space: 8px;
+    vertical-gap: 8px;
+    padding: 8px;
 }
 
 browser-panel > .footer {
     height: auto;
     width: 1s;
-    child-left: 1s;
-    child-right: 1s;
+    alignment: center;
 }
 
 browser-panel scrollview {
     overflow-x: visible;
 }
 
+browser-panel list scrollview {
+    height: auto;
+}
+
+browser-panel list list-item {
+    height: auto;
+}
+
 tags-panel {
     background-color: #181818;
     size: 1s;
-    row-between: 8px;
-    child-space: 8px;
-    min-height: 200px;
+    vertical-gap: 8px;
+    padding: 8px;
+    /* min-height: 200px; */
 }
 
 tags-panel > .footer {
     height: auto;
     width: 1s;
-    child-left: 1s;
-    child-right: 1s;
+    alignment: center;
 }
 
 .searchbar {
@@ -342,7 +386,7 @@ textbox.search:checked {
     background-color: #141414;
 }
 
-textbox.search .placeholder {
+textbox.search:placeholder-shown {
     color: #a8a8a8;
 }
 
@@ -371,12 +415,12 @@ toggle-button {
     size: 28px;
     border-radius: 4px;
     cursor: hand;
+    padding: 4px;
 }
 
 toggle-button > svg {
     fill: #ebebeb;
     size: 1s;
-    space: 4px;
 }
 
 toggle-button:checked {
@@ -392,11 +436,10 @@ toggle-button:focus-visible {
 
 toggle-button.filter-search {
     size: 20px;
-    child-space: auto;
+    padding: 2px;
 }
 
 toggle-button.filter-search svg {
-    space: 2px;
     fill: #8c8c8c;
 }
 
@@ -433,8 +476,8 @@ button.menu-button {
 }
 
 .footer > label {
-    child-left: 8px;
-    child-right: 8px;
+    padding-left: 8px;
+    padding-right: 8px;
 }
 
 wave-panel .footer > label {
@@ -443,8 +486,8 @@ wave-panel .footer > label {
 }
 
 wave-panel .footer {
-    child-left: 1s;
-    child-right: 1s;
+    padding-left: 1s;
+    padding-right: 1s;
 }
 
 directory-item > label {
@@ -456,10 +499,9 @@ directory-item {
     height: 28px;
     width: 1s;
     border-radius: 2px;
-    child-space: 4px;
-    child-top: 1s;
-    child-bottom: 1s;
-    col-between: 3px;
+    padding: 4px;
+    alignment: center;
+    horizontal-gap: 4px;
     cursor: hand;
 }
 
@@ -479,12 +521,11 @@ directory-item:focus-visible {
 directory-item .dir-num {
     color: #8c8c8c;
     width: auto;
-    child-space: 1s;
+    alignment: center;
 }
 
 directory-item .dir-name {
-    child-top: 1s;
-    child-bottom: 1s;
+    alignment: left;
 }
 
 directory-item .dir-arrow {
@@ -564,15 +605,15 @@ directory-item.search-match .dir-name {
 .panel {
     size: 1s;
     background-color: #181818;
-    child-space: 8px;
-    row-between: 8px;
+    padding: 8px;
+    vertical-gap: 8px;
 }
 
 samples-panel {
     size: 1s;
     background-color: #1e1e1e;
-    child-space: 8px;
-    row-between: 8px;
+    padding: 8px;
+    vertical-gap: 8px;
     overflow: hidden;
 }
 
@@ -583,25 +624,23 @@ samples-panel .footer {
 wave-panel {
     background-color: #181818;
     size: 1s;
-    row-between: 8px;
+    vertical-gap: 8px;
 }
 
 wave-panel > .header {
     background-color: #181818;
     height: 40px;
     width: 1s;
-    col-between: 8px;
-    child-space: 8px;
-    child-top: 1s;
-    child-bottom: 1s;
+    horizontal-gap: 8px;
+    padding: 8px;
+    alignment: center;
 }
 
 wave-panel > .footer {
     background-color: #1e1e1e;
     height: 40px;
     width: 1s;
-    child-top: 1s;
-    child-bottom: 1s;
+    alignment: center;
 }
 
 wave-panel waveview {
@@ -673,61 +712,6 @@ scrollview.v-scroll > scrollbar.vertical:active > .thumb {
     transition: opacity 200ms 0s linear;
 }
 
-smart-table {
-    /* background-color: #323232;
-    border-radius: 8px;
-    height: auto;
-    width: 1s; */
-}
-
-smart-table .row-list vstack {
-    background-color: #505050;
-    row-between: 1px;
-}
-
-smart-table .header {
-    height: 20px;
-    background-color: #1e1e1e;
-    col-between: 0px;
-    overflow: hidden;
-}
-
-smart-table label.column-heading {
-    child-space: 1s;
-    width: 1s;
-}
-
-smart-table smart-table-row {
-    height: 28px;
-    background-color: #1e1e1e;
-    cursor: hand;
-}
-
-smart-table smart-table-row.odd {
-    background-color: #252525;
-}
-
-smart-table smart-table-row.even {
-    background-color: #1e1e1e;
-}
-
-smart-table smart-table-row.selected {
-    background-color: #224b71;
-}
-
-smart-table smart-table-row.odd.selected {
-    background-color: #224b71;
-}
-
-smart-table-row label {
-    child-left: 8px;
-}
-
-smart-table-row:focus-visible {
-    outline: 1px #336bcc;
-    outline-offset: -1px;
-}
-
 resize-handle {
     width: 1px;
     height: 6px;
@@ -763,15 +747,14 @@ resize-handle:disabled {
 .transport-controls {
     height: 1s;
     width: auto;
-    child-top: 1s;
-    child-bottom: 1s;
-    col-between: 2px;
+    alignment: center;
+    horizontal-gap: 2px;
 }
 
 .transport-controls button {
     size: 28px;
     background-color: transparent;
-    child-space: 1s;
+    alignment: center;
 }
 
 .transport-controls button:hover {
@@ -784,10 +767,9 @@ resize-handle:disabled {
 }
 
 .tag {
-    child-space: 4px;
-    child-top: 1s;
-    child-bottom: 1s;
-    col-between: 8px;
+    padding: 4px;
+    alignment: center;
+    horizontal-gap: 8px;
 }
 
 .tag > .tag-color {
@@ -806,4 +788,26 @@ resize-handle:disabled {
 
 chip {
     background-color: #1e1e1e;
+}
+
+@keyframes animate-expand {
+    0% {
+        max-height: 0px;
+    }
+    100% {
+        max-height: auto;
+    }
+}
+
+.treeview-list {
+    /* max-height: 0px; */
+    overflow: hidden;
+}
+
+tooltip {
+    max-width: auto;
+}
+
+treeview:focus-visible {
+    outline-width: 0px;
 }

@@ -35,21 +35,21 @@ pub fn settings_dialog<L: Lens<Target = SettingsData>>(
                         lens.then(SettingsData::selected_page),
                         move |cx, selected_page| match selected_page.get(cx) {
                             SettingsPage::General => {
-                                ScrollView::new(cx, 0.0, 0.0, false, true, |cx| {
+                                ScrollView::new(cx, |cx| {
                                     //
                                 })
                                 .class("settings");
                             }
 
                             SettingsPage::UserInterface => {
-                                ScrollView::new(cx, 0.0, 0.0, false, true, |cx| {
+                                ScrollView::new(cx, |cx| {
                                     //
                                 })
                                 .class("settings");
                             }
 
                             SettingsPage::Audio => {
-                                ScrollView::new(cx, 0.0, 0.0, false, true, move |cx| {
+                                ScrollView::new(cx, move |cx| {
                                     //
                                     HStack::new(cx, move |cx| {
                                         Label::new(cx, Localized::new("audio-driver"));
@@ -191,7 +191,7 @@ pub fn settings_dialog<L: Lens<Target = SettingsData>>(
             .on_close(|cx| {
                 cx.emit(AppEvent::HideSettingsDialog);
             })
-            .on_create(|cx| cx.emit(WindowEvent::SetPosition((300, 300).into())))
+            .anchor(Anchor::Center)
             .class("dialog")
             .title("Settings")
             .inner_size((800, 600))
