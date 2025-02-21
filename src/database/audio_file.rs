@@ -4,8 +4,6 @@ use vizia::prelude::*;
 
 use super::{CollectionID, Database, DatabaseConnection, DatabaseError, AUDIO_FILE_EXTENSIONS};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
-use vizia::prelude::*;
 
 pub type AudioFileID = usize;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Data, Lens)]
@@ -32,7 +30,8 @@ impl AudioFile {
 
         let name = path.file_name().unwrap().to_str().unwrap();
 
-        let audio_file = AudioFile::new(id, name.to_string(), id, 0.0, 0.0, 0.0, None, None, 0.0);
+        let audio_file =
+            AudioFile::new(id, name.to_string(), id, 0.0, 0.0, 0.0, 0.0, None, None, 0.0);
 
         Some(audio_file)
     }
@@ -102,7 +101,7 @@ impl DatabaseAudioFileHandler for Database {
     fn get_audio_file_by_path(&self, path: &PathBuf) -> Result<AudioFile, DatabaseError> {
         if let Some(connection) = self.get_connection() {
             let mut query = connection.prepare(
-                "SELECT id, name, collection, duration, sample_rate, bit_depth, bpm, key, size FROM audio_files WHERE path = (?1)",
+                "SELECT id, name, collection, duration, sample_rate, bit_depth, num_channels, bpm, key, size FROM audio_files WHERE path = (?1)",
             )?;
 
             let col: AudioFile = query.query_row([path.to_str().unwrap()], |row| {
@@ -130,7 +129,7 @@ impl DatabaseAudioFileHandler for Database {
     fn get_child_audio_files(&self, parent: CollectionID) -> Result<Vec<AudioFile>, DatabaseError> {
         if let Some(connection) = self.get_connection() {
             let mut query = connection.prepare(
-                "SELECT id, name, collection, duration, sample_rate, bit_depth, bpm, key, size FROM audio_files WHERE collection = (?1)",
+                "SELECT id, name, collection, duration, sample_rate, bit_depth, num_channels, bpm, key, size FROM audio_files WHERE collection = (?1)",
             )?;
 
             let audio_files = query.query_map([parent], |row| {
@@ -141,9 +140,10 @@ impl DatabaseAudioFileHandler for Database {
                     duration: row.get(3)?,
                     sample_rate: row.get(4)?,
                     bit_depth: row.get(5)?,
-                    bpm: row.get(6)?,
-                    key: row.get(7)?,
-                    size: row.get(8)?,
+                    num_channels: row.get(6)?,
+                    bpm: row.get(7)?,
+                    key: row.get(8)?,
+                    size: row.get(9)?,
                 })
             })?;
 
