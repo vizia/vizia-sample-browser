@@ -19,7 +19,7 @@ impl Tag {
     }
 }
 
-pub trait DatabaseTagHandler {
+pub trait DatabaseTags {
     fn get_all_tags(&self) -> Result<Vec<Tag>, DatabaseError>;
     fn get_tags_for_audio_file(&self, audio_file: AudioFileID) -> Result<Vec<Tag>, DatabaseError>;
     fn insert_tag(&mut self, tag: Tag) -> Result<(), DatabaseError>;
@@ -30,7 +30,7 @@ pub trait DatabaseTagHandler {
     ) -> Result<(), DatabaseError>;
 }
 
-impl DatabaseTagHandler for Database {
+impl DatabaseTags for Database {
     fn get_all_tags(&self) -> Result<Vec<Tag>, DatabaseError> {
         if let Some(connection) = self.get_connection() {
             let mut query = connection.prepare("SELECT id, name, color, number FROM tags")?;

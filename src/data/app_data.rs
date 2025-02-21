@@ -16,11 +16,14 @@ use crate::{
         browser_data::{BrowserData, Directory},
         TagsData,
     },
-    database::prelude::{
-        AudioFile, CollectionID, Database, DatabaseAudioFileHandler, DatabaseCollectionHandler,
+    database::{
+        prelude::{
+            AudioFile, CollectionID, Database, DatabaseAudioFileHandler, DatabaseCollection,
+        },
+        DatabaseTags,
     },
     engine::{SamplePlayerController, Waveform},
-    AudioData, Collection, DatabaseTagHandler, PlayerState, Tag,
+    AudioData, Collection, PlayerState, Tag,
 };
 
 use super::{Config, SamplesData, SettingsData};
