@@ -17,6 +17,7 @@ CREATE TABLE audio_files (
     duration            integer,
     sample_rate         integer,
     bit_depth           integer,
+    num_channels        integer,
     bpm                 integer NULL,
     key                 integer NULL,
     size                integer,

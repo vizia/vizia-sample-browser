@@ -1,6 +1,7 @@
 use crate::data::browser_data::Directory;
 
 use super::*;
+use creek::{Decoder, SymphoniaDecoder, SymphoniaDecoderInfo};
 use hound::WavReader;
 use rusqlite::Connection;
 use std::{
@@ -94,33 +95,56 @@ impl Database {
                 let p = child_file.path();
                 let extension = p.extension().map(|v| v.to_str().unwrap()).unwrap_or("");
 
-                if !AUDIO_FILE_EXTENSIONS.contains(&extension) {
-                    break;
-                }
+                // if !AUDIO_FILE_EXTENSIONS.contains(&extension) {
+                //     continue;
+                // }
 
                 let file_id = audio_file_count.load(std::sync::atomic::Ordering::Relaxed);
-                audio_file_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+
                 let name = child_file.file_name().to_str().unwrap().to_string();
 
-                let mut reader = WavReader::open(p).unwrap();
-                let spec = reader.spec();
+                if let Ok((_, file_info)) = SymphoniaDecoder::new(p, 0, 0, ()) {
+                    let sample_rate = file_info.sample_rate.unwrap_or(41000);
+                    let duration = file_info.num_frames as f32 / sample_rate as f32;
 
-                let duration = reader.duration() as f32 / spec.sample_rate as f32;
+                    let audio_file = AudioFile::new(
+                        file_id,
+                        name,
+                        id,
+                        duration,
+                        sample_rate as f32,
+                        0.0,
+                        file_info.num_channels as f32,
+                        None,
+                        None,
+                        0.0,
+                    );
 
-                let audio_file = AudioFile::new(
-                    file_id,
-                    name,
-                    id,
-                    duration,
-                    spec.sample_rate as f32,
-                    spec.bits_per_sample as f32,
-                    None,
-                    None,
-                    reader.duration() as f32 * spec.channels as f32 * spec.bits_per_sample as f32
-                        / 8.0,
-                );
+                    db.insert_audio_file(audio_file);
 
-                db.insert_audio_file(audio_file);
+                    audio_file_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                }
+
+                // let mut reader = WavReader::open(p).unwrap();
+                // let spec = reader.spec();
+
+                // let duration = reader.duration() as f32 / spec.sample_rate as f32;
+
+                // let audio_file = AudioFile::new(
+                //     file_id,
+                //     name,
+                //     id,
+                //     duration,
+                //     spec.sample_rate as f32,
+                //     spec.bits_per_sample as f32,
+                //     spec.channels as f32,
+                //     None,
+                //     None,
+                //     reader.duration() as f32 * spec.channels as f32 * spec.bits_per_sample as f32
+                //         / 8.0,
+                // );
+
+                // db.insert_audio_file(audio_file);
             }
         });
 

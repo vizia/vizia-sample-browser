@@ -12,16 +12,16 @@ pub fn about_dialog(cx: &mut Context, icon: DynamicImage) {
                     Label::new(cx, "Name").class("title");
                     Label::new(cx, "Version 0.1").class("title");
                 })
-                .child_space(Stretch(1.0));
+                .alignment(Alignment::Center);
             })
             .on_close(|cx| {
                 cx.emit(AppEvent::HideAboutDialog);
             })
-            .on_create(|cx| cx.emit(WindowEvent::SetPosition((300, 300).into())))
             .class("dialog")
             .title("About")
             .inner_size((200, 200))
             .resizable(false)
+            .anchor(Anchor::Center)
             .enabled_window_buttons(WindowButtons::CLOSE)
             .icon(icon.width(), icon.height(), icon.clone().into_bytes());
         }

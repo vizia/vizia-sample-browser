@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use vizia::prelude::*;
 
 use super::{CollectionID, Database, DatabaseConnection, DatabaseError, AUDIO_FILE_EXTENSIONS};
@@ -14,6 +16,7 @@ pub struct AudioFile {
     pub duration: f32,
     pub sample_rate: f32,
     pub bit_depth: f32,
+    pub num_channels: f32,
     pub bpm: Option<f32>,
     pub key: Option<f32>,
     pub size: f32,
@@ -41,11 +44,23 @@ impl AudioFile {
         duration: f32,
         sample_rate: f32,
         bit_depth: f32,
+        num_channels: f32,
         bpm: Option<f32>,
         key: Option<f32>,
         size: f32,
     ) -> Self {
-        Self { id, name, collection, duration, sample_rate, bit_depth, bpm, key, size }
+        Self {
+            id,
+            name,
+            collection,
+            duration,
+            sample_rate,
+            bit_depth,
+            num_channels,
+            bpm,
+            key,
+            size,
+        }
     }
 }
 
@@ -61,7 +76,7 @@ impl DatabaseAudioFileHandler for Database {
     fn get_all_audio_files(&self) -> Result<Vec<AudioFile>, DatabaseError> {
         if let Some(connection) = self.get_connection() {
             let mut query = connection
-                .prepare("SELECT id, name, collection, duration, sample_rate, bit_depth, bpm, key, size FROM audio_files")?;
+                .prepare("SELECT id, name, collection, duration, sample_rate, bit_depth, num_channels, bpm, key, size FROM audio_files")?;
 
             let audio_files = query.query_map([], |row| {
                 Ok(AudioFile {
@@ -71,9 +86,10 @@ impl DatabaseAudioFileHandler for Database {
                     duration: row.get(3)?,
                     sample_rate: row.get(4)?,
                     bit_depth: row.get(5)?,
-                    bpm: row.get(6)?,
-                    key: row.get(7)?,
-                    size: row.get(8)?,
+                    num_channels: row.get(6)?,
+                    bpm: row.get(7)?,
+                    key: row.get(8)?,
+                    size: row.get(9)?,
                 })
             })?;
 
@@ -98,9 +114,10 @@ impl DatabaseAudioFileHandler for Database {
                     duration: row.get(3)?,
                     sample_rate: row.get(4)?,
                     bit_depth: row.get(5)?,
-                    bpm: row.get(6)?,
-                    key: row.get(7)?,
-                    size: row.get(8)?,
+                    num_channels: row.get(6)?,
+                    bpm: row.get(7)?,
+                    key: row.get(8)?,
+                    size: row.get(9)?,
                 })
             })?;
 
@@ -138,7 +155,7 @@ impl DatabaseAudioFileHandler for Database {
     fn insert_audio_file(&mut self, audio_file: AudioFile) -> Result<(), DatabaseError> {
         if let Some(connection) = self.get_connection() {
             connection.execute(
-                "INSERT INTO audio_files (id, name, collection, duration, sample_rate, bit_depth, bpm, key, size) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                "INSERT INTO audio_files (id, name, collection, duration, sample_rate, bit_depth, num_channels, bpm, key, size) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
                 (
                     audio_file.id,
                     audio_file.name,
@@ -146,6 +163,7 @@ impl DatabaseAudioFileHandler for Database {
                     audio_file.duration,
                     audio_file.sample_rate,
                     audio_file.bit_depth,
+                    audio_file.num_channels,
                     audio_file.bpm,
                     audio_file.key,
                     audio_file.size,

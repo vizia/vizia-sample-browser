@@ -52,7 +52,6 @@ impl DatabaseMetadata {
 }
 
 pub trait DatabaseStore {
-    // Get
     fn get_root_path(&self) -> &PathBuf;
 
     fn get_meta_directory_path(&self) -> PathBuf {

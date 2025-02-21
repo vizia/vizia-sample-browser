@@ -25,3 +25,5 @@ Cargo.lock
 
 /the-libre-sample-pack
 /the-libre-sample-pack2
+config.ron
+*.ron
